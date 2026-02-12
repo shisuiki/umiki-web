@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { ProLayout } from '@ant-design/pro-components'
 import {
   RocketOutlined,
@@ -12,29 +13,35 @@ import {
 } from '@ant-design/icons'
 import { Outlet, useNavigate, useLocation } from 'react-router-dom'
 
-const menuRoutes = {
-  routes: [
-    {
-      path: '/data',
-      name: 'Data',
-      icon: <LineChartOutlined />,
-      routes: [
-        { path: '/data/NVDA', name: 'NVDA Dashboard', icon: <FundOutlined /> },
-        { path: '/data/NVDA/ticks', name: 'Tick Explorer', icon: <BarChartOutlined /> },
-        { path: '/data/NVDA/training', name: 'Training Analysis', icon: <DotChartOutlined /> },
-      ],
-    },
-    { path: '/jobs', name: 'Jobs', icon: <RocketOutlined /> },
-    { path: '/datasets', name: 'Datasets', icon: <DatabaseOutlined /> },
-    { path: '/qc', name: 'QC', icon: <SafetyCertificateOutlined /> },
-    { path: '/audit', name: 'Audit', icon: <AuditOutlined /> },
-    { path: '/export', name: 'Export', icon: <ExportOutlined /> },
-  ],
-}
-
 export default function AppLayout() {
   const navigate = useNavigate()
   const location = useLocation()
+
+  // Extract current symbol from URL for dynamic Data submenu
+  const currentSymbol = useMemo(() => {
+    const match = location.pathname.match(/^\/data\/([^/]+)/)
+    return match ? match[1] : 'NVDA'
+  }, [location.pathname])
+
+  const menuRoutes = useMemo(() => ({
+    routes: [
+      {
+        path: '/data',
+        name: `Data (${currentSymbol})`,
+        icon: <LineChartOutlined />,
+        routes: [
+          { path: `/data/${currentSymbol}`, name: 'Dashboard', icon: <FundOutlined /> },
+          { path: `/data/${currentSymbol}/ticks`, name: 'Tick Explorer', icon: <BarChartOutlined /> },
+          { path: `/data/${currentSymbol}/training`, name: 'Training Analysis', icon: <DotChartOutlined /> },
+        ],
+      },
+      { path: '/jobs', name: 'Jobs', icon: <RocketOutlined /> },
+      { path: '/datasets', name: 'Datasets', icon: <DatabaseOutlined /> },
+      { path: '/qc', name: 'QC', icon: <SafetyCertificateOutlined /> },
+      { path: '/audit', name: 'Audit', icon: <AuditOutlined /> },
+      { path: '/export', name: 'Export', icon: <ExportOutlined /> },
+    ],
+  }), [currentSymbol])
 
   return (
     <ProLayout

@@ -1,17 +1,29 @@
 import { useState, useMemo } from 'react'
-import { Card, DatePicker, Space, Statistic, Row, Col, Tag, Typography } from 'antd'
-import { useParams } from 'react-router-dom'
+import { Card, DatePicker, Space, Statistic, Row, Col, Tag, Typography, Select } from 'antd'
+import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import ReactECharts from 'echarts-for-react'
 import dayjs from 'dayjs'
-import { getBars, getSymbolSummary } from '@/api/client'
+import { getBars, getSymbolSummary, getDatasets } from '@/api/client'
 import type { Bar } from '@/types/api'
 
 const { RangePicker } = DatePicker
 
 export default function SymbolDashboard() {
   const { symbol = 'NVDA' } = useParams()
+  const navigate = useNavigate()
   const [range, setRange] = useState<[string, string]>(['2026-02-02', '2026-02-06'])
+
+  const { data: datasets } = useQuery({
+    queryKey: ['datasets'],
+    queryFn: () => getDatasets(),
+  })
+
+  const symbols = useMemo(() => {
+    if (!datasets) return []
+    const unique = [...new Set(datasets.map((d) => d.symbol))]
+    return unique.sort().map((s) => ({ label: s, value: s }))
+  }, [datasets])
 
   const { data: bars } = useQuery({
     queryKey: ['bars', symbol, range],
@@ -166,7 +178,14 @@ export default function SymbolDashboard() {
       <Card size="small">
         <Space align="center" style={{ justifyContent: 'space-between', width: '100%', display: 'flex' }}>
           <Space>
-            <Typography.Title level={4} style={{ margin: 0 }}>{symbol}</Typography.Title>
+            <Select
+              value={symbol}
+              onChange={(val) => navigate(`/data/${val}`)}
+              options={symbols}
+              style={{ width: 140 }}
+              showSearch
+              placeholder="Symbol"
+            />
             {summary?.dataset && <Tag>{summary.dataset}</Tag>}
             {lastBar && (
               <Typography.Text style={{ fontSize: 20, fontWeight: 600, color: lastBar.return_1m >= 0 ? '#26a69a' : '#ef5350' }}>

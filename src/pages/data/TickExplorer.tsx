@@ -41,7 +41,7 @@ export default function TickExplorer() {
       headerName: c,
       width: c === 'ts' ? 180 : c === 'action' || c === 'side' ? 70 : 110,
       valueFormatter: c === 'ts'
-        ? (p: { value: number }) => p.value ? new Date(p.value / 1e6).toISOString().replace('T', ' ').slice(0, 23) : ''
+        ? (p: { value: number }) => p.value ? new Date(p.value).toISOString().replace('T', ' ').slice(0, 23) : ''
         : ['price', 'mid_price', 'spread', 'bid_px_00', 'ask_px_00'].includes(c)
           ? (p: { value: number }) => p.value?.toFixed?.(4) ?? ''
           : undefined,
@@ -125,7 +125,7 @@ export default function TickExplorer() {
               onRowClicked={(e) => {
                 const ts = e.data?.ts
                 if (ts) {
-                  const isoTs = new Date(ts / 1e6).toISOString()
+                  const isoTs = new Date(ts).toISOString()
                   setSelectedTs(isoTs)
                 }
               }}
@@ -147,7 +147,7 @@ export default function TickExplorer() {
             <Card title="Event & Features" size="small">
               <Descriptions bordered size="small" column={1}>
                 <Descriptions.Item label="Time">
-                  {new Date(bookData.ts / 1e6).toISOString().replace('T', ' ').slice(0, 23)}
+                  {new Date(bookData.ts).toISOString().replace('T', ' ').slice(0, 23)}
                 </Descriptions.Item>
                 <Descriptions.Item label="Action">{bookData.event.action}</Descriptions.Item>
                 <Descriptions.Item label="Side">{bookData.event.side}</Descriptions.Item>
