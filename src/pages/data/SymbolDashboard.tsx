@@ -156,8 +156,9 @@ export default function SymbolDashboard() {
       make('Avg Spread', [
         { name: 'Spread', data: barData.map((b: Bar) => b.avg_spread), color: '#ffa726' },
       ]),
-      make('Avg Imbalance', [
-        { name: 'Imbalance', data: barData.map((b: Bar) => b.avg_imbalance), color: '#42a5f5' },
+      make('Multi-Level Imbalance', [
+        { name: 'L1', data: barData.map((b: Bar) => b.avg_imbalance_l1), color: '#42a5f5' },
+        { name: 'L5', data: barData.map((b: Bar) => b.avg_imbalance_l5), color: '#ab47bc' },
       ]),
       make('Avg Depth', [
         { name: 'Bid', data: barData.map((b: Bar) => b.avg_depth_bid), color: '#26a69a' },
@@ -166,6 +167,20 @@ export default function SymbolDashboard() {
       make('Avg Book Slope', [
         { name: 'Bid', data: barData.map((b: Bar) => b.avg_book_slope_bid), color: '#26a69a' },
         { name: 'Ask', data: barData.map((b: Bar) => b.avg_book_slope_ask), color: '#ef5350' },
+      ]),
+      make('2-Tail Hidden Depth', [
+        { name: 'Tail Bid', data: barData.map((b: Bar) => b.avg_tail_bid_sz), color: '#26a69a' },
+        { name: 'Tail Ask', data: barData.map((b: Bar) => b.avg_tail_ask_sz), color: '#ef5350' },
+        { name: 'Tail Imb', data: barData.map((b: Bar) => b.avg_tail_imbalance), color: '#ffa726' },
+      ]),
+      make('Trade Intensity', [
+        { name: 'Intensity', data: barData.map((b: Bar) => b.trade_intensity), color: '#66bb6a' },
+      ]),
+      make('Delta Mid Volatility', [
+        { name: 'δ Mid Std', data: barData.map((b: Bar) => b.delta_mid_std), color: '#ef5350' },
+      ]),
+      make('Avg Imbalance (L10)', [
+        { name: 'Imbalance', data: barData.map((b: Bar) => b.avg_imbalance), color: '#42a5f5' },
       ]),
     ]
   }, [barData, zoom])

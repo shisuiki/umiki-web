@@ -30,7 +30,12 @@ export default function TrainingAnalysis() {
   // Feature distribution histograms
   const featureHistograms = useMemo(() => {
     if (!stats?.features) return []
-    const featureCols = ['avg_spread', 'avg_imbalance', 'avg_depth_bid', 'avg_depth_ask', 'avg_book_slope_bid', 'avg_book_slope_ask']
+    const featureCols = [
+      'avg_spread', 'avg_imbalance', 'avg_imbalance_l1', 'avg_imbalance_l5',
+      'avg_depth_bid', 'avg_depth_ask', 'avg_book_slope_bid', 'avg_book_slope_ask',
+      'avg_tail_bid_sz', 'avg_tail_ask_sz', 'avg_tail_imbalance',
+      'trade_intensity', 'delta_mid_std',
+    ]
     return featureCols
       .filter((col) => stats.features[col])
       .map((col) => {
@@ -120,7 +125,8 @@ export default function TrainingAnalysis() {
       field: k,
       headerName: k,
       width: k === 'date' ? 110 : k === 'ts' ? 160 : 100,
-      valueFormatter: ['return_1m', 'avg_spread', 'avg_imbalance', 'avg_book_slope_bid', 'avg_book_slope_ask'].includes(k)
+      valueFormatter: ['return_1m', 'avg_spread', 'avg_imbalance', 'avg_imbalance_l1', 'avg_imbalance_l5',
+        'avg_book_slope_bid', 'avg_book_slope_ask', 'avg_tail_imbalance', 'trade_intensity', 'delta_mid_std'].includes(k)
         ? (p: { value: number }) => p.value?.toFixed?.(6) ?? ''
         : k === 'ts'
           ? (p: { value: number }) => p.value ? new Date(p.value).toISOString().replace('T', ' ').slice(0, 19) : ''

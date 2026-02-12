@@ -137,12 +137,19 @@ export interface Bar {
   n_trades: number
   avg_spread: number
   avg_imbalance: number
+  avg_imbalance_l1: number
+  avg_imbalance_l5: number
   avg_depth_bid: number
   avg_depth_ask: number
   avg_book_slope_bid: number
   avg_book_slope_ask: number
   avg_ct_sz_ratio_bid: number
   avg_ct_sz_ratio_ask: number
+  avg_tail_bid_sz: number
+  avg_tail_ask_sz: number
+  avg_tail_imbalance: number
+  trade_intensity: number
+  delta_mid_std: number
   return_1m: number
   direction_1m: number
 }
@@ -191,12 +198,19 @@ export interface TrainingSample {
   n_trades: number
   avg_spread: number
   avg_imbalance: number
+  avg_imbalance_l1: number
+  avg_imbalance_l5: number
   avg_depth_bid: number
   avg_depth_ask: number
   avg_book_slope_bid: number
   avg_book_slope_ask: number
   avg_ct_sz_ratio_bid: number
   avg_ct_sz_ratio_ask: number
+  avg_tail_bid_sz: number
+  avg_tail_ask_sz: number
+  avg_tail_imbalance: number
+  trade_intensity: number
+  delta_mid_std: number
   return_1m: number
   direction_1m: number
   date: string
