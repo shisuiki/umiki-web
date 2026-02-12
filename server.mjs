@@ -55,7 +55,7 @@ const server = http.createServer((req, res) => {
     // Hashed assets get long cache; index.html must never cache (to pick up new bundles)
     if (path.extname(filePath) === '.html') {
       headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
-    } else if (/\.[a-f0-9]{8,}\.\w+$/.test(filePath)) {
+    } else if (/[-\.][a-zA-Z0-9_-]{6,}\.\w+$/.test(path.basename(filePath))) {
       headers['Cache-Control'] = 'public, max-age=31536000, immutable'
     }
     res.writeHead(200, headers)
