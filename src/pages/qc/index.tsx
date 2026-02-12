@@ -78,6 +78,14 @@ export default function QCPage() {
   }, [reports])
 
   // Action distribution for all reports
+  const ACTION_NAMES: Record<string, string> = {
+    A: 'Add',
+    C: 'Cancel',
+    T: 'Trade',
+    M: 'Modify',
+    F: 'Fill',
+    R: 'Reset',
+  }
   const actionOption = useMemo(() => {
     const merged: Record<string, number> = {}
     reports.forEach((r) => {
@@ -87,14 +95,32 @@ export default function QCPage() {
         })
       }
     })
+    const actionColors: Record<string, string> = { A: '#42a5f5', C: '#ffa726', T: '#26a69a', M: '#ab47bc', F: '#66bb6a', R: '#ef5350' }
     return {
-      tooltip: { trigger: 'item' as const },
+      tooltip: {
+        trigger: 'item' as const,
+        formatter: (p: { name: string; value: number; percent: number }) =>
+          `${ACTION_NAMES[p.name] ?? p.name} (${p.name})<br/>${p.value.toLocaleString()} events (${p.percent}%)`,
+      },
+      legend: {
+        orient: 'vertical' as const,
+        right: 10,
+        top: 'center',
+        formatter: (name: string) => ACTION_NAMES[name] ?? name,
+        textStyle: { color: '#ccc' },
+      },
       series: [
         {
           type: 'pie',
-          radius: ['40%', '70%'],
-          data: Object.entries(merged).map(([name, value]) => ({ name, value })),
-          label: { show: true, formatter: '{b}: {d}%' },
+          radius: ['40%', '65%'],
+          center: ['35%', '50%'],
+          data: Object.entries(merged).map(([name, value]) => ({
+            name,
+            value,
+            itemStyle: { color: actionColors[name] ?? '#78909c' },
+          })),
+          label: { show: false },
+          emphasis: { label: { show: true, fontSize: 14, formatter: '{b}: {d}%' } },
         },
       ],
     }
