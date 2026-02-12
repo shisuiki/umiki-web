@@ -150,8 +150,8 @@ export interface Bar {
 
 export interface BarsResponse {
   symbol: string
-  from: string
-  to: string
+  from_date: string
+  to_date: string
   count: number
   bars: Bar[]
 }
@@ -213,8 +213,8 @@ export interface FeatureStats {
 
 export interface TrainingDataResponse {
   symbol: string
-  from: string
-  to: string
+  from_date: string
+  to_date: string
   count: number
   samples: TrainingSample[]
   stats: {
