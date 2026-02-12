@@ -4,7 +4,9 @@ import { SearchOutlined } from '@ant-design/icons'
 import { useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { AgGridReact } from 'ag-grid-react'
-import { AllCommunityModule, ModuleRegistry, type ColDef } from 'ag-grid-community'
+import { AllCommunityModule, ModuleRegistry, type ColDef, themeQuartz, colorSchemeDarkBlue } from 'ag-grid-community'
+
+const gridTheme = themeQuartz.withPart(colorSchemeDarkBlue)
 import ReactECharts from 'echarts-for-react'
 import { getTicks, getBook } from '@/api/client'
 
@@ -120,7 +122,7 @@ export default function TickExplorer() {
             <AgGridReact
               rowData={rowData}
               columnDefs={colDefs}
-              theme="legacy"
+              theme={gridTheme}
               rowSelection="single"
               onRowClicked={(e) => {
                 const ts = e.data?.ts

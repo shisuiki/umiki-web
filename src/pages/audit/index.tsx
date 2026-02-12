@@ -3,7 +3,9 @@ import { Card, Select, InputNumber, Button, Space, Typography, Descriptions, Tag
 import { SearchOutlined } from '@ant-design/icons'
 import { useQuery } from '@tanstack/react-query'
 import { AgGridReact } from 'ag-grid-react'
-import { AllCommunityModule, ModuleRegistry, type ColDef } from 'ag-grid-community'
+import { AllCommunityModule, ModuleRegistry, type ColDef, themeQuartz, colorSchemeDarkBlue } from 'ag-grid-community'
+
+const gridTheme = themeQuartz.withPart(colorSchemeDarkBlue)
 import ReactECharts from 'echarts-for-react'
 import { getAuditSample, getAuditValidate } from '@/api/client'
 import type { BookLevel } from '@/types/api'
@@ -176,7 +178,7 @@ export default function AuditPage() {
               <AgGridReact
                 rowData={bookRows}
                 columnDefs={bookColDefs}
-                theme="legacy"
+                theme={gridTheme}
                 domLayout="autoHeight"
                 headerHeight={32}
                 rowHeight={30}

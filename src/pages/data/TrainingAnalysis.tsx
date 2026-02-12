@@ -4,7 +4,9 @@ import { useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import ReactECharts from 'echarts-for-react'
 import { AgGridReact } from 'ag-grid-react'
-import { AllCommunityModule, ModuleRegistry, type ColDef } from 'ag-grid-community'
+import { AllCommunityModule, ModuleRegistry, type ColDef, themeQuartz, colorSchemeDarkBlue } from 'ag-grid-community'
+
+const gridTheme = themeQuartz.withPart(colorSchemeDarkBlue)
 import dayjs from 'dayjs'
 import { getTrainingData } from '@/api/client'
 import type { TrainingSample } from '@/types/api'
@@ -183,7 +185,7 @@ export default function TrainingAnalysis() {
             <AgGridReact
               rowData={samples}
               columnDefs={gridCols}
-              theme="legacy"
+              theme={gridTheme}
               headerHeight={32}
               rowHeight={28}
             />

@@ -53,6 +53,7 @@ export default function AppLayout() {
       fixSiderbar
       route={menuRoutes}
       location={{ pathname: location.pathname }}
+      selectedKeys={[location.pathname]}
       menuItemRender={(item, dom) => (
         <a onClick={() => item.path && navigate(item.path)}>{dom}</a>
       )}
