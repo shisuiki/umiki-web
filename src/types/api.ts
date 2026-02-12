@@ -37,7 +37,6 @@ export interface QCReport {
   symbol: string
   date: string
   n_records: number
-  n_seq_gaps: number
   n_bbo_crossed: number
   n_bbo_locked: number
   spread_mean: number

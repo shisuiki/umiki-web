@@ -1,6 +1,5 @@
 import { useState, useMemo } from 'react'
-import { Card, Select, Space, Tag, Statistic, Row, Col, Tooltip } from 'antd'
-import { InfoCircleOutlined } from '@ant-design/icons'
+import { Card, Select, Space, Tag, Statistic, Row, Col } from 'antd'
 import { ProTable } from '@ant-design/pro-components'
 import { useQuery } from '@tanstack/react-query'
 import ReactECharts from 'echarts-for-react'
@@ -35,8 +34,8 @@ export default function QCPage() {
   const totals = useMemo(() => {
     return {
       records: reports.reduce((s, r) => s + r.n_records, 0),
-      seqGaps: reports.reduce((s, r) => s + r.n_seq_gaps, 0),
       bboCrossed: reports.reduce((s, r) => s + r.n_bbo_crossed, 0),
+      bboLocked: reports.reduce((s, r) => s + r.n_bbo_locked, 0),
       alerts: alerts.length,
     }
   }, [reports, alerts])
@@ -46,7 +45,7 @@ export default function QCPage() {
     const dates = [...new Set(reports.map((r) => r.date))].sort()
     const syms = [...new Set(reports.map((r) => r.symbol))].sort()
     const data = reports.map((r) => {
-      const health = r.n_bbo_crossed > 0 ? 2 : r.n_seq_gaps > 0 ? 1 : 0
+      const health = r.n_bbo_crossed > 0 ? 2 : r.n_bbo_locked > 0 ? 1 : 0
       return [dates.indexOf(r.date), syms.indexOf(r.symbol), health]
     })
     return {
@@ -56,7 +55,7 @@ export default function QCPage() {
             (r) => r.date === dates[p.data[0]] && r.symbol === syms[p.data[1]],
           )
           if (!r) return ''
-          return `${r.symbol} ${r.date}<br/>Records: ${r.n_records.toLocaleString()}<br/>Seq Gaps: ${r.n_seq_gaps}<br/>BBO Crossed: ${r.n_bbo_crossed}`
+          return `${r.symbol} ${r.date}<br/>Records: ${r.n_records.toLocaleString()}<br/>BBO Crossed: ${r.n_bbo_crossed}<br/>BBO Locked: ${r.n_bbo_locked}`
         },
       },
       xAxis: { type: 'category' as const, data: dates },
@@ -146,16 +145,10 @@ export default function QCPage() {
           <Card size="small"><Statistic title="Total Records" value={totals.records} /></Card>
         </Col>
         <Col span={6}>
-          <Card size="small">
-            <Statistic
-              title={<span>Seq Gaps <Tooltip title="Exchange-level sequence gaps — expected for single-instrument extraction from full ITCH feed. Not a data quality issue."><InfoCircleOutlined style={{ color: '#666', fontSize: 12 }} /></Tooltip></span>}
-              value={totals.seqGaps}
-              valueStyle={{ color: '#78909c' }}
-            />
-          </Card>
+          <Card size="small"><Statistic title="BBO Crossed" value={totals.bboCrossed} valueStyle={{ color: totals.bboCrossed > 0 ? '#ff4d4f' : '#52c41a' }} /></Card>
         </Col>
         <Col span={6}>
-          <Card size="small"><Statistic title="BBO Crossed" value={totals.bboCrossed} valueStyle={{ color: totals.bboCrossed > 0 ? '#ff4d4f' : '#52c41a' }} /></Card>
+          <Card size="small"><Statistic title="BBO Locked" value={totals.bboLocked} valueStyle={{ color: totals.bboLocked > 0 ? '#faad14' : '#52c41a' }} /></Card>
         </Col>
         <Col span={6}>
           <Card size="small"><Statistic title="Alerts" value={totals.alerts} valueStyle={{ color: totals.alerts > 0 ? '#ff4d4f' : '#52c41a' }} /></Card>
@@ -194,7 +187,6 @@ export default function QCPage() {
             { title: 'Symbol', dataIndex: 'symbol', width: 80 },
             { title: 'Date', dataIndex: 'date', width: 110 },
             { title: 'Records', dataIndex: 'n_records', render: (_, r) => r.n_records.toLocaleString(), sorter: (a, b) => a.n_records - b.n_records },
-            { title: <span>Seq Gaps <Tooltip title="Exchange-level, expected"><InfoCircleOutlined style={{ color: '#666', fontSize: 11 }} /></Tooltip></span>, dataIndex: 'n_seq_gaps', render: (_, r) => <Tag color="default">{r.n_seq_gaps.toLocaleString()}</Tag> },
             { title: 'BBO Crossed', dataIndex: 'n_bbo_crossed', render: (_, r) => <Tag color={r.n_bbo_crossed > 0 ? 'red' : 'green'}>{r.n_bbo_crossed}</Tag> },
             { title: 'BBO Locked', dataIndex: 'n_bbo_locked' },
             { title: 'Spread (mean)', dataIndex: 'spread_mean', render: (_, r) => r.spread_mean?.toFixed(4) },
