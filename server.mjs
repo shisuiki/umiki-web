@@ -51,7 +51,14 @@ const server = http.createServer((req, res) => {
       res.end('Not found')
       return
     }
-    res.writeHead(200, { 'Content-Type': mime })
+    const headers = { 'Content-Type': mime }
+    // Hashed assets get long cache; index.html must never cache (to pick up new bundles)
+    if (path.extname(filePath) === '.html') {
+      headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    } else if (/\.[a-f0-9]{8,}\.\w+$/.test(filePath)) {
+      headers['Cache-Control'] = 'public, max-age=31536000, immutable'
+    }
+    res.writeHead(200, headers)
     res.end(data)
   })
 })
