@@ -15,6 +15,7 @@ import type {
   BookResponse,
   TrainingDataResponse,
   SymbolSummary,
+  BaselineResponse,
 } from '@/types/api'
 
 const api = ky.create({
@@ -80,3 +81,6 @@ export const getTrainingData = (params: { symbol: string; from: string; to: stri
 
 export const getSymbolSummary = (symbol: string) =>
   api.get('data/summary', { searchParams: { symbol } }).json<SymbolSummary>()
+
+export const getBaseline = (symbol: string) =>
+  api.get('data/baseline', { searchParams: { symbol } }).json<BaselineResponse>()

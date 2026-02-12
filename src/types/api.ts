@@ -260,3 +260,28 @@ export interface SymbolSummary {
   zones: Record<string, ZoneInfo>
   daily: DailySummary[]
 }
+
+export interface BaselineResponse {
+  symbol: string
+  dataset: string
+  n_samples: number
+  n_train: number
+  n_test: number
+  n_features: number
+  features: string[]
+  regression: {
+    model: string
+    mse: number
+    naive_mse: number
+    mse_ratio: number
+    r2: number
+  }
+  classification: {
+    model: string
+    accuracy: number
+    naive_accuracy: number
+    lift_over_naive: number
+    class_accuracy: Record<string, number>
+    class_distribution: Record<string, number>
+  }
+}
