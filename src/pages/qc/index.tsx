@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react'
-import { Card, Select, Space, Tag, Statistic, Row, Col } from 'antd'
+import { Card, Select, Space, Tag, Statistic, Row, Col, Tooltip } from 'antd'
+import { InfoCircleOutlined } from '@ant-design/icons'
 import { ProTable } from '@ant-design/pro-components'
 import { useQuery } from '@tanstack/react-query'
 import ReactECharts from 'echarts-for-react'
@@ -145,7 +146,13 @@ export default function QCPage() {
           <Card size="small"><Statistic title="Total Records" value={totals.records} /></Card>
         </Col>
         <Col span={6}>
-          <Card size="small"><Statistic title="Seq Gaps" value={totals.seqGaps} valueStyle={{ color: totals.seqGaps > 0 ? '#faad14' : '#52c41a' }} /></Card>
+          <Card size="small">
+            <Statistic
+              title={<span>Seq Gaps <Tooltip title="Exchange-level sequence gaps — expected for single-instrument extraction from full ITCH feed. Not a data quality issue."><InfoCircleOutlined style={{ color: '#666', fontSize: 12 }} /></Tooltip></span>}
+              value={totals.seqGaps}
+              valueStyle={{ color: '#78909c' }}
+            />
+          </Card>
         </Col>
         <Col span={6}>
           <Card size="small"><Statistic title="BBO Crossed" value={totals.bboCrossed} valueStyle={{ color: totals.bboCrossed > 0 ? '#ff4d4f' : '#52c41a' }} /></Card>
@@ -187,7 +194,7 @@ export default function QCPage() {
             { title: 'Symbol', dataIndex: 'symbol', width: 80 },
             { title: 'Date', dataIndex: 'date', width: 110 },
             { title: 'Records', dataIndex: 'n_records', render: (_, r) => r.n_records.toLocaleString(), sorter: (a, b) => a.n_records - b.n_records },
-            { title: 'Seq Gaps', dataIndex: 'n_seq_gaps', render: (_, r) => <Tag color={r.n_seq_gaps > 0 ? 'orange' : 'green'}>{r.n_seq_gaps}</Tag> },
+            { title: <span>Seq Gaps <Tooltip title="Exchange-level, expected"><InfoCircleOutlined style={{ color: '#666', fontSize: 11 }} /></Tooltip></span>, dataIndex: 'n_seq_gaps', render: (_, r) => <Tag color="default">{r.n_seq_gaps.toLocaleString()}</Tag> },
             { title: 'BBO Crossed', dataIndex: 'n_bbo_crossed', render: (_, r) => <Tag color={r.n_bbo_crossed > 0 ? 'red' : 'green'}>{r.n_bbo_crossed}</Tag> },
             { title: 'BBO Locked', dataIndex: 'n_bbo_locked' },
             { title: 'Spread (mean)', dataIndex: 'spread_mean', render: (_, r) => r.spread_mean?.toFixed(4) },
