@@ -10,6 +10,11 @@ import type {
   ExportRequest,
   ExportResponse,
   TrainingManifest,
+  BarsResponse,
+  TicksResponse,
+  BookResponse,
+  TrainingDataResponse,
+  SymbolSummary,
 } from '@/types/api'
 
 const api = ky.create({
@@ -58,3 +63,20 @@ export const triggerExport = (body: ExportRequest) =>
   api.post('export', { json: body }).json<ExportResponse>()
 export const getExportManifest = () =>
   api.get('export/manifest').json<TrainingManifest>()
+
+// Data
+export const getBars = (params: { symbol: string; from: string; to: string }) =>
+  api.get('data/bars', { searchParams: params }).json<BarsResponse>()
+
+export const getTicks = (params: {
+  symbol: string; date: string; from_ts: string; to_ts: string; limit?: number
+}) => api.get('data/ticks', { searchParams: params as Record<string, string | number> }).json<TicksResponse>()
+
+export const getBook = (params: { symbol: string; date: string; ts: string }) =>
+  api.get('data/book', { searchParams: params }).json<BookResponse>()
+
+export const getTrainingData = (params: { symbol: string; from: string; to: string }) =>
+  api.get('data/training', { searchParams: params }).json<TrainingDataResponse>()
+
+export const getSymbolSummary = (symbol: string) =>
+  api.get('data/summary', { searchParams: { symbol } }).json<SymbolSummary>()

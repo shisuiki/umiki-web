@@ -5,11 +5,25 @@ import {
   SafetyCertificateOutlined,
   AuditOutlined,
   ExportOutlined,
+  LineChartOutlined,
+  BarChartOutlined,
+  DotChartOutlined,
+  FundOutlined,
 } from '@ant-design/icons'
 import { Outlet, useNavigate, useLocation } from 'react-router-dom'
 
 const menuRoutes = {
   routes: [
+    {
+      path: '/data',
+      name: 'Data',
+      icon: <LineChartOutlined />,
+      routes: [
+        { path: '/data/NVDA', name: 'NVDA Dashboard', icon: <FundOutlined /> },
+        { path: '/data/NVDA/ticks', name: 'Tick Explorer', icon: <BarChartOutlined /> },
+        { path: '/data/NVDA/training', name: 'Training Analysis', icon: <DotChartOutlined /> },
+      ],
+    },
     { path: '/jobs', name: 'Jobs', icon: <RocketOutlined /> },
     { path: '/datasets', name: 'Datasets', icon: <DatabaseOutlined /> },
     { path: '/qc', name: 'QC', icon: <SafetyCertificateOutlined /> },
@@ -28,13 +42,14 @@ export default function AppLayout() {
       logo={false}
       layout="mix"
       navTheme="realDark"
-      siderWidth={200}
+      siderWidth={210}
       fixSiderbar
       route={menuRoutes}
       location={{ pathname: location.pathname }}
       menuItemRender={(item, dom) => (
         <a onClick={() => item.path && navigate(item.path)}>{dom}</a>
       )}
+      subMenuItemRender={(_item, dom) => <span>{dom}</span>}
       contentStyle={{ padding: 24, minHeight: 'calc(100vh - 56px)' }}
     >
       <Outlet />

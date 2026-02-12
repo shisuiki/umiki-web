@@ -17,6 +17,7 @@
     "ag-grid-community": "^35.1.0",
     "ag-grid-react": "^35.1.0",
     "antd": "^5.29.3",
+    "dayjs": "^1.11.19",
     "echarts": "^6.0.0",
     "echarts-for-react": "^3.0.6",
     "http-proxy": "^1.18.1",

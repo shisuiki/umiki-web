@@ -124,3 +124,126 @@ export interface TrainingShard {
   file_size_bytes: number
   shard_hash: string
 }
+
+// --- Data endpoints ---
+
+export interface Bar {
+  ts: number
+  open: number
+  high: number
+  low: number
+  close: number
+  volume: number
+  n_events: number
+  n_trades: number
+  avg_spread: number
+  avg_imbalance: number
+  avg_depth_bid: number
+  avg_depth_ask: number
+  avg_book_slope_bid: number
+  avg_book_slope_ask: number
+  avg_ct_sz_ratio_bid: number
+  avg_ct_sz_ratio_ask: number
+  return_1m: number
+  direction_1m: number
+}
+
+export interface BarsResponse {
+  symbol: string
+  from: string
+  to: string
+  count: number
+  bars: Bar[]
+}
+
+export interface TicksResponse {
+  symbol: string
+  date: string
+  total_in_range: number
+  returned: number
+  columns: string[]
+  rows: (string | number)[][]
+}
+
+export interface BookResponse {
+  ts: number
+  event: { action: string; side: string; depth: number; price: number; size: number }
+  bids: { level: number; px: number; sz: number; ct: number }[]
+  asks: { level: number; px: number; sz: number; ct: number }[]
+  features?: {
+    mid_price: number
+    spread: number
+    imbalance: number
+    depth_bid: number
+    depth_ask: number
+    book_slope_bid: number
+    book_slope_ask: number
+  }
+}
+
+export interface TrainingSample {
+  ts: number
+  open: number
+  high: number
+  low: number
+  close: number
+  volume: number
+  n_events: number
+  n_trades: number
+  avg_spread: number
+  avg_imbalance: number
+  avg_depth_bid: number
+  avg_depth_ask: number
+  avg_book_slope_bid: number
+  avg_book_slope_ask: number
+  avg_ct_sz_ratio_bid: number
+  avg_ct_sz_ratio_ask: number
+  return_1m: number
+  direction_1m: number
+  date: string
+}
+
+export interface FeatureStats {
+  mean: number
+  std: number
+  min: number
+  max: number
+  median: number
+}
+
+export interface TrainingDataResponse {
+  symbol: string
+  from: string
+  to: string
+  count: number
+  samples: TrainingSample[]
+  stats: {
+    features: Record<string, FeatureStats>
+    labels: {
+      direction_1m: Record<string, number>
+      return_1m: { mean: number; std: number; count: number }
+    }
+  }
+}
+
+export interface ZoneInfo {
+  dates: string[]
+  total_records: number
+  total_size_mb: number
+}
+
+export interface DailySummary {
+  date: string
+  bars: number
+  total_volume: number
+  avg_spread: number
+  return_mean: number
+  return_std: number
+}
+
+export interface SymbolSummary {
+  symbol: string
+  dataset: string
+  zones: Record<string, ZoneInfo>
+  daily: DailySummary[]
+}

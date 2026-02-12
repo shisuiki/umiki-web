@@ -7,6 +7,9 @@ import DatasetsPage from '@/pages/datasets'
 import QCPage from '@/pages/qc'
 import AuditPage from '@/pages/audit'
 import ExportPage from '@/pages/export'
+import SymbolDashboard from '@/pages/data/SymbolDashboard'
+import TickExplorer from '@/pages/data/TickExplorer'
+import TrainingAnalysis from '@/pages/data/TrainingAnalysis'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -38,7 +41,10 @@ export default function App() {
                 <Route path="/qc" element={<QCPage />} />
                 <Route path="/audit" element={<AuditPage />} />
                 <Route path="/export" element={<ExportPage />} />
-                <Route path="*" element={<Navigate to="/jobs" replace />} />
+                <Route path="/data/:symbol" element={<SymbolDashboard />} />
+                <Route path="/data/:symbol/ticks" element={<TickExplorer />} />
+                <Route path="/data/:symbol/training" element={<TrainingAnalysis />} />
+                <Route path="*" element={<Navigate to="/data/NVDA" replace />} />
               </Route>
             </Routes>
           </BrowserRouter>
