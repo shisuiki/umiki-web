@@ -11,7 +11,16 @@ const statusColors: Record<string, string> = {
   pending: 'default',
   running: 'processing',
   completed: 'success',
+  done: 'success',
   failed: 'error',
+}
+
+function parseStages(stages: string | string[]): string[] {
+  if (Array.isArray(stages)) return stages
+  if (typeof stages === 'string') {
+    try { return JSON.parse(stages) } catch { return [stages] }
+  }
+  return []
 }
 
 export default function JobsPage() {
@@ -59,7 +68,7 @@ export default function JobsPage() {
     {
       title: 'Stages',
       dataIndex: 'stages',
-      render: (_, r) => r.stages?.map((s) => <Tag key={s}>{s}</Tag>),
+      render: (_, r) => parseStages(r.stages).map((s) => <Tag key={s}>{s}</Tag>),
     },
     { title: 'Created', dataIndex: 'created_at', valueType: 'dateTime', width: 180 },
     { title: 'Finished', dataIndex: 'finished_at', valueType: 'dateTime', width: 180 },
@@ -127,7 +136,7 @@ export default function JobsPage() {
                 <Tag color={statusColors[jobDetail.status]}>{jobDetail.status}</Tag>
               </Descriptions.Item>
               <Descriptions.Item label="Stages">
-                {jobDetail.stages?.map((s) => <Tag key={s}>{s}</Tag>)}
+                {parseStages(jobDetail.stages).map((s) => <Tag key={s}>{s}</Tag>)}
               </Descriptions.Item>
               <Descriptions.Item label="Spec">{jobDetail.spec_path ?? '-'}</Descriptions.Item>
               <Descriptions.Item label="Created">{jobDetail.created_at}</Descriptions.Item>

@@ -2,8 +2,8 @@
 
 export interface Job {
   id: string
-  status: 'pending' | 'running' | 'completed' | 'failed'
-  stages: string[]
+  status: 'pending' | 'running' | 'completed' | 'done' | 'failed'
+  stages: string[] | string
   spec_path?: string
   created_at: string
   started_at?: string
@@ -43,7 +43,7 @@ export interface QCReport {
   spread_mean: number
   spread_median: number
   action_dist: Record<string, number>
-  alerts: QCAlert[]
+  alerts: string[]
 }
 
 export interface QCAlert {
