@@ -65,8 +65,8 @@ export const getExportManifest = () =>
   api.get('export/manifest').json<TrainingManifest>()
 
 // Data
-export const getBars = (params: { symbol: string; from: string; to: string }) =>
-  api.get('data/bars', { searchParams: params }).json<BarsResponse>()
+export const getBars = (params: { symbol: string; from: string; to: string; session?: string }) =>
+  api.get('data/bars', { searchParams: params as Record<string, string> }).json<BarsResponse>()
 
 export const getTicks = (params: {
   symbol: string; date: string; from_ts: string; to_ts: string; limit?: number

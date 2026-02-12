@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { Card, DatePicker, Space, Statistic, Row, Col, Tag, Typography, Select } from 'antd'
+import { Card, DatePicker, Space, Statistic, Row, Col, Tag, Typography, Select, Segmented } from 'antd'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import ReactECharts from 'echarts-for-react'
@@ -13,6 +13,7 @@ export default function SymbolDashboard() {
   const { symbol = 'NVDA' } = useParams()
   const navigate = useNavigate()
   const [range, setRange] = useState<[string, string]>(['2026-02-02', '2026-02-06'])
+  const [session, setSession] = useState<string>('all')
 
   const { data: datasets } = useQuery({
     queryKey: ['datasets'],
@@ -26,8 +27,8 @@ export default function SymbolDashboard() {
   }, [datasets])
 
   const { data: bars } = useQuery({
-    queryKey: ['bars', symbol, range],
-    queryFn: () => getBars({ symbol, from: range[0], to: range[1] }),
+    queryKey: ['bars', symbol, range, session],
+    queryFn: () => getBars({ symbol, from: range[0], to: range[1], session }),
   })
 
   const { data: summary } = useQuery({
@@ -36,6 +37,23 @@ export default function SymbolDashboard() {
   })
 
   const barData = bars?.bars ?? []
+
+  // RTH session markers (14:30 UTC = 9:30 AM ET, 21:00 UTC = 4:00 PM ET)
+  const rthMarkLines = useMemo(() => {
+    if (session === 'rth' || !barData.length) return []
+    const dates = [...new Set(barData.map((b: Bar) => {
+      const d = new Date(b.ts)
+      return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`
+    }))]
+    const lines: { xAxis: number; label: { formatter: string; position: string } }[] = []
+    dates.forEach((d) => {
+      const openMs = new Date(`${d}T14:30:00Z`).getTime()
+      const closeMs = new Date(`${d}T21:00:00Z`).getTime()
+      lines.push({ xAxis: openMs, label: { formatter: 'RTH Open', position: 'start' } })
+      lines.push({ xAxis: closeMs, label: { formatter: 'RTH Close', position: 'start' } })
+    })
+    return lines
+  }, [barData, session])
 
   // Candlestick chart
   const candlestickOption = useMemo(() => {
@@ -71,6 +89,13 @@ export default function SymbolDashboard() {
             borderColor: '#26a69a',
             borderColor0: '#ef5350',
           },
+          markLine: rthMarkLines.length ? {
+            silent: true,
+            symbol: 'none',
+            lineStyle: { type: 'dashed', color: '#ffa726', width: 1, opacity: 0.6 },
+            label: { fontSize: 9, color: '#ffa726' },
+            data: rthMarkLines,
+          } : undefined,
         },
         {
           name: 'Volume',
@@ -87,7 +112,7 @@ export default function SymbolDashboard() {
         },
       ],
     }
-  }, [barData])
+  }, [barData, rthMarkLines])
 
   // Feature grid charts
   const featureCharts = useMemo(() => {
@@ -193,13 +218,25 @@ export default function SymbolDashboard() {
               </Typography.Text>
             )}
           </Space>
-          <RangePicker
-            value={[dayjs(range[0]), dayjs(range[1])]}
-            onChange={(dates) => {
-              if (dates?.[0] && dates?.[1])
-                setRange([dates[0].format('YYYY-MM-DD'), dates[1].format('YYYY-MM-DD')])
-            }}
-          />
+          <Space>
+            <Segmented
+              value={session}
+              onChange={(val) => setSession(val as string)}
+              options={[
+                { label: 'All', value: 'all' },
+                { label: 'RTH', value: 'rth' },
+                { label: 'Extended', value: 'extended' },
+              ]}
+              size="small"
+            />
+            <RangePicker
+              value={[dayjs(range[0]), dayjs(range[1])]}
+              onChange={(dates) => {
+                if (dates?.[0] && dates?.[1])
+                  setRange([dates[0].format('YYYY-MM-DD'), dates[1].format('YYYY-MM-DD')])
+              }}
+            />
+          </Space>
         </Space>
       </Card>
 

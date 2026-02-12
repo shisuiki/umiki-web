@@ -15,8 +15,8 @@ const DATES = ['2026-02-02', '2026-02-03', '2026-02-04', '2026-02-05', '2026-02-
 export default function TickExplorer() {
   const { symbol = 'NVDA' } = useParams()
   const [date, setDate] = useState('2026-02-02')
-  const [fromTs, setFromTs] = useState('2026-02-02T14:30:00Z')
-  const [toTs, setToTs] = useState('2026-02-02T14:31:00Z')
+  const [fromTs, setFromTs] = useState('2026-02-02T09:00:00Z')
+  const [toTs, setToTs] = useState('2026-02-02T09:01:00Z')
   const [limit, setLimit] = useState(5000)
   const [searchTrigger, setSearchTrigger] = useState<object | null>(null)
   const [selectedTs, setSelectedTs] = useState<string | null>(null)
@@ -92,8 +92,8 @@ export default function TickExplorer() {
 
   const handleDateChange = (d: string) => {
     setDate(d)
-    setFromTs(`${d}T14:30:00Z`)
-    setToTs(`${d}T14:31:00Z`)
+    setFromTs(`${d}T09:00:00Z`)
+    setToTs(`${d}T09:01:00Z`)
   }
 
   return (
