@@ -3,9 +3,12 @@ import { Card, DatePicker, Space, Statistic, Row, Col, Tag, Typography, Select, 
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import ReactECharts from 'echarts-for-react'
+import { connect as echartsConnect } from 'echarts'
 import dayjs from 'dayjs'
 import { getBars, getSymbolSummary, getDatasets } from '@/api/client'
 import type { Bar } from '@/types/api'
+
+const CHART_GROUP = 'dashboard'
 
 const { RangePicker } = DatePicker
 
@@ -21,6 +24,11 @@ export default function SymbolDashboard() {
     if (z.start != null && z.end != null) {
       setZoom({ start: z.start, end: z.end })
     }
+  }, [])
+
+  const onChartReady = useCallback((instance: { group: string }) => {
+    instance.group = CHART_GROUP
+    echartsConnect(CHART_GROUP)
   }, [])
 
   const { data: datasets } = useQuery({
@@ -274,21 +282,21 @@ export default function SymbolDashboard() {
           <Col><Statistic title="Total Volume" value={totalVolume.toLocaleString()} /></Col>
           {lastBar && <Col><Statistic title="Avg Spread" value={lastBar.avg_spread.toFixed(4)} /></Col>}
         </Row>
-        {barData.length > 0 && <ReactECharts option={candlestickOption} style={{ height: 450 }} onEvents={{ datazoom: onZoomChange }} />}
+        {barData.length > 0 && <ReactECharts option={candlestickOption} style={{ height: 450 }} onEvents={{ datazoom: onZoomChange }} onChartReady={onChartReady} />}
       </Card>
 
       <Row gutter={16}>
         {featureCharts.map((opt, i) => (
           <Col span={12} key={i}>
             <Card size="small">
-              <ReactECharts option={opt} style={{ height: 200 }} onEvents={{ datazoom: onZoomChange }} />
+              <ReactECharts option={opt} style={{ height: 200 }} onEvents={{ datazoom: onZoomChange }} onChartReady={onChartReady} />
             </Card>
           </Col>
         ))}
       </Row>
 
       <Card title="Returns" size="small">
-        {barData.length > 0 && <ReactECharts option={returnsOption} style={{ height: 350 }} onEvents={{ datazoom: onZoomChange }} />}
+        {barData.length > 0 && <ReactECharts option={returnsOption} style={{ height: 350 }} onEvents={{ datazoom: onZoomChange }} onChartReady={onChartReady} />}
       </Card>
     </Space>
   )
