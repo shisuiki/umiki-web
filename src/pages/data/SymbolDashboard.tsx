@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import { Card, DatePicker, Space, Statistic, Row, Col, Tag, Typography, Select, Segmented } from 'antd'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
@@ -14,6 +14,14 @@ export default function SymbolDashboard() {
   const navigate = useNavigate()
   const [range, setRange] = useState<[string, string]>(['2026-02-02', '2026-02-06'])
   const [session, setSession] = useState<string>('all')
+  const [zoom, setZoom] = useState<{ start: number; end: number }>({ start: 0, end: 100 })
+
+  const onZoomChange = useCallback((params: { start?: number; end?: number; batch?: { start: number; end: number }[] }) => {
+    const z = params.batch ? params.batch[0] : params
+    if (z.start != null && z.end != null) {
+      setZoom({ start: z.start, end: z.end })
+    }
+  }, [])
 
   const { data: datasets } = useQuery({
     queryKey: ['datasets'],
@@ -73,8 +81,8 @@ export default function SymbolDashboard() {
         { gridIndex: 1, scale: true, splitArea: { show: true } },
       ],
       dataZoom: [
-        { type: 'inside', xAxisIndex: [0, 1] },
-        { type: 'slider', xAxisIndex: [0, 1], bottom: 10 },
+        { type: 'inside', xAxisIndex: [0, 1], start: zoom.start, end: zoom.end },
+        { type: 'slider', xAxisIndex: [0, 1], bottom: 10, start: zoom.start, end: zoom.end },
       ],
       series: [
         {
@@ -112,7 +120,7 @@ export default function SymbolDashboard() {
         },
       ],
     }
-  }, [barData, rthMarkLines])
+  }, [barData, rthMarkLines, zoom])
 
   // Feature grid charts
   const featureCharts = useMemo(() => {
@@ -125,6 +133,7 @@ export default function SymbolDashboard() {
       grid: { left: 50, right: 15, top: 35, bottom: 25 },
       xAxis: { type: 'time' as const, data: ts, show: false },
       yAxis: { type: 'value' as const, scale: true, splitLine: { lineStyle: { color: '#333' } } },
+      dataZoom: [{ type: 'inside', start: zoom.start, end: zoom.end }],
       series: series.map((s) => ({
         name: s.name,
         type: 'line',
@@ -151,7 +160,7 @@ export default function SymbolDashboard() {
         { name: 'Ask', data: barData.map((b: Bar) => b.avg_book_slope_ask), color: '#ef5350' },
       ]),
     ]
-  }, [barData])
+  }, [barData, zoom])
 
   // Returns chart
   const returnsOption = useMemo(() => {
@@ -166,7 +175,10 @@ export default function SymbolDashboard() {
       tooltip: { trigger: 'axis' },
       legend: { textStyle: { color: '#999' } },
       grid: { left: 60, right: 30, top: 35, bottom: 50 },
-      dataZoom: [{ type: 'inside' }, { type: 'slider', bottom: 5 }],
+      dataZoom: [
+        { type: 'inside', start: zoom.start, end: zoom.end },
+        { type: 'slider', bottom: 5, start: zoom.start, end: zoom.end },
+      ],
       xAxis: { type: 'time' },
       yAxis: [
         { type: 'value', name: 'Return 1m', scale: true, splitLine: { lineStyle: { color: '#333' } } },
@@ -193,7 +205,7 @@ export default function SymbolDashboard() {
         },
       ],
     }
-  }, [barData])
+  }, [barData, zoom])
 
   const totalVolume = barData.reduce((s: number, b: Bar) => s + b.volume, 0)
   const lastBar = barData[barData.length - 1]
@@ -262,21 +274,21 @@ export default function SymbolDashboard() {
           <Col><Statistic title="Total Volume" value={totalVolume.toLocaleString()} /></Col>
           {lastBar && <Col><Statistic title="Avg Spread" value={lastBar.avg_spread.toFixed(4)} /></Col>}
         </Row>
-        {barData.length > 0 && <ReactECharts option={candlestickOption} style={{ height: 450 }} />}
+        {barData.length > 0 && <ReactECharts option={candlestickOption} style={{ height: 450 }} onEvents={{ datazoom: onZoomChange }} />}
       </Card>
 
       <Row gutter={16}>
         {featureCharts.map((opt, i) => (
           <Col span={12} key={i}>
             <Card size="small">
-              <ReactECharts option={opt} style={{ height: 200 }} />
+              <ReactECharts option={opt} style={{ height: 200 }} onEvents={{ datazoom: onZoomChange }} />
             </Card>
           </Col>
         ))}
       </Row>
 
       <Card title="Returns" size="small">
-        {barData.length > 0 && <ReactECharts option={returnsOption} style={{ height: 350 }} />}
+        {barData.length > 0 && <ReactECharts option={returnsOption} style={{ height: 350 }} onEvents={{ datazoom: onZoomChange }} />}
       </Card>
     </Space>
   )
