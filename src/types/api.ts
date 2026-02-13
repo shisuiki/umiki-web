@@ -44,6 +44,10 @@ export interface QCReport {
   spread_median: number
   n_iceberg_refills: number
   iceberg_pct: number
+  n_hidden_fill: number
+  hidden_fill_pct: number
+  n_mid_spread: number
+  mid_spread_pct: number
   tail_bid_mean: number
   tail_ask_mean: number
   tail_imbalance_mean: number

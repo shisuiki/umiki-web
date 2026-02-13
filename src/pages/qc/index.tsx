@@ -13,8 +13,9 @@ const alertColors: Record<string, string> = {
   error: 'red',
 }
 
-const icebergColor = (pct: number) =>
-  pct > 1 ? '#ff4d4f' : pct > 0.5 ? '#faad14' : '#52c41a'
+const HIDDEN_FILL_COLOR = '#7c4dff'
+const MID_SPREAD_COLOR = '#ff6d00'
+const ICEBERG_COLOR = '#00bfa5'
 
 export default function QCPage() {
   const [symbolFilter, setSymbolFilter] = useState<string>()
@@ -39,20 +40,20 @@ export default function QCPage() {
     const trades = reports.reduce((s, r) => s + (r.n_trades ?? 0), 0)
     const bboCrossed = reports.reduce((s, r) => s + r.n_bbo_crossed, 0)
     const bboLocked = reports.reduce((s, r) => s + r.n_bbo_locked, 0)
-    const icebergRefills = reports.reduce((s, r) => s + (r.n_iceberg_refills ?? 0), 0)
-    const avgIcebergPct = reports.length
-      ? reports.reduce((s, r) => s + (r.iceberg_pct ?? 0), 0) / reports.length
-      : 0
-    return { records, trades, bboCrossed, bboLocked, icebergRefills, avgIcebergPct, alerts: alerts.length }
+    const hiddenFill = reports.reduce((s, r) => s + (r.n_hidden_fill ?? 0), 0)
+    const midSpread = reports.reduce((s, r) => s + (r.n_mid_spread ?? 0), 0)
+    const iceberg = reports.reduce((s, r) => s + (r.n_iceberg_refills ?? 0), 0)
+    const totalHidden = hiddenFill + midSpread + iceberg
+    const hiddenRate = trades > 0 ? (totalHidden / trades) * 100 : 0
+    return { records, trades, bboCrossed, bboLocked, hiddenFill, midSpread, iceberg, totalHidden, hiddenRate, alerts: alerts.length }
   }, [reports, alerts])
 
-  // Heatmap: symbol × date → health (now includes iceberg severity)
+  // Heatmap: symbol × date → health
   const heatmapOption = useMemo(() => {
     const dates = [...new Set(reports.map((r) => r.date))].sort()
     const syms = [...new Set(reports.map((r) => r.symbol))].sort()
     const data = reports.map((r) => {
-      // 0=clean, 1=iceberg notable, 2=bbo locked, 3=bbo crossed
-      const health = r.n_bbo_crossed > 0 ? 3 : r.n_bbo_locked > 0 ? 2 : (r.iceberg_pct ?? 0) > 1 ? 1 : 0
+      const health = r.n_bbo_crossed > 0 ? 3 : r.n_bbo_locked > 0 ? 2 : ((r.hidden_fill_pct ?? 0) + (r.mid_spread_pct ?? 0) + (r.iceberg_pct ?? 0)) > 60 ? 1 : 0
       return [dates.indexOf(r.date), syms.indexOf(r.symbol), health]
     })
     return {
@@ -62,11 +63,11 @@ export default function QCPage() {
             (r) => r.date === dates[p.data[0]] && r.symbol === syms[p.data[1]],
           )
           if (!r) return ''
+          const totalPct = (r.hidden_fill_pct ?? 0) + (r.mid_spread_pct ?? 0) + (r.iceberg_pct ?? 0)
           return `<b>${r.symbol} ${r.date}</b><br/>`
-            + `Records: ${r.n_records.toLocaleString()}<br/>`
             + `Trades: ${(r.n_trades ?? 0).toLocaleString()}<br/>`
-            + `BBO Crossed: ${r.n_bbo_crossed} | Locked: ${r.n_bbo_locked}<br/>`
-            + `Iceberg: ${r.n_iceberg_refills ?? 0} (${(r.iceberg_pct ?? 0).toFixed(2)}%)`
+            + `Hidden Fill: ${(r.hidden_fill_pct ?? 0).toFixed(1)}% | Mid-Spread: ${(r.mid_spread_pct ?? 0).toFixed(1)}% | Iceberg: ${(r.iceberg_pct ?? 0).toFixed(1)}%<br/>`
+            + `<b>Total Hidden: ${totalPct.toFixed(1)}%</b>`
         },
       },
       xAxis: { type: 'category' as const, data: dates },
@@ -86,19 +87,70 @@ export default function QCPage() {
     }
   }, [reports])
 
+  // Stacked bar: hidden order types as % of trades per day
+  const hiddenStackOption = useMemo(() => {
+    if (!reports.length) return null
+    const dates = [...new Set(reports.map((r) => r.date))].sort()
+    // Average pct across symbols per date
+    const byDate: Record<string, { hf: number[]; ms: number[]; ic: number[] }> = {}
+    reports.forEach((r) => {
+      if (!byDate[r.date]) byDate[r.date] = { hf: [], ms: [], ic: [] }
+      byDate[r.date].hf.push(r.hidden_fill_pct ?? 0)
+      byDate[r.date].ms.push(r.mid_spread_pct ?? 0)
+      byDate[r.date].ic.push(r.iceberg_pct ?? 0)
+    })
+    const avg = (arr: number[]) => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0
+
+    return {
+      tooltip: {
+        trigger: 'axis' as const,
+        formatter: (p: { seriesName: string; value: number; color: string }[]) => {
+          const total = p.reduce((s, i) => s + i.value, 0)
+          return `<b>${p[0] && 'axisValue' in p[0] ? (p[0] as unknown as { axisValue: string }).axisValue : ''}</b><br/>`
+            + p.map((i) => `<span style="color:${i.color}">\u25CF</span> ${i.seriesName}: ${i.value.toFixed(2)}%`).join('<br/>')
+            + `<br/><b>Total: ${total.toFixed(2)}%</b>`
+        },
+      },
+      legend: { textStyle: { color: '#999' } },
+      grid: { left: 50, right: 20, top: 35, bottom: 30 },
+      xAxis: { type: 'category' as const, data: dates },
+      yAxis: { type: 'value' as const, axisLabel: { formatter: (v: number) => v + '%' }, splitLine: { lineStyle: { color: '#333' } } },
+      series: [
+        {
+          name: 'Hidden Fill',
+          type: 'bar',
+          stack: 'hidden',
+          data: dates.map((d) => avg(byDate[d]?.hf ?? [])),
+          itemStyle: { color: HIDDEN_FILL_COLOR },
+        },
+        {
+          name: 'Mid-Spread',
+          type: 'bar',
+          stack: 'hidden',
+          data: dates.map((d) => avg(byDate[d]?.ms ?? [])),
+          itemStyle: { color: MID_SPREAD_COLOR },
+        },
+        {
+          name: 'Iceberg',
+          type: 'bar',
+          stack: 'hidden',
+          data: dates.map((d) => avg(byDate[d]?.ic ?? [])),
+          itemStyle: { color: ICEBERG_COLOR },
+        },
+      ],
+    }
+  }, [reports])
+
   // Hidden depth bar chart: tail bid vs tail ask per day
   const tailDepthOption = useMemo(() => {
     if (!reports.length) return null
     const dates = [...new Set(reports.map((r) => r.date))].sort()
-    // Average across symbols per date
     const bidByDate: Record<string, number[]> = {}
     const askByDate: Record<string, number[]> = {}
-    const imbByDate: Record<string, number[]> = {}
     reports.forEach((r) => {
-      if (!bidByDate[r.date]) { bidByDate[r.date] = []; askByDate[r.date] = []; imbByDate[r.date] = [] }
+      if (!bidByDate[r.date]) { bidByDate[r.date] = []; askByDate[r.date] = [] }
       bidByDate[r.date].push(r.tail_bid_mean ?? 0)
       askByDate[r.date].push(r.tail_ask_mean ?? 0)
-      imbByDate[r.date].push(r.tail_imbalance_mean ?? 0)
     })
     const avg = (arr: number[]) => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0
 
@@ -115,18 +167,8 @@ export default function QCPage() {
       xAxis: { type: 'category' as const, data: dates },
       yAxis: { type: 'value' as const, scale: true, splitLine: { lineStyle: { color: '#333' } }, axisLabel: { formatter: (v: number) => v >= 1000 ? (v / 1000).toFixed(0) + 'K' : String(v) } },
       series: [
-        {
-          name: 'Tail Bid',
-          type: 'bar',
-          data: dates.map((d) => avg(bidByDate[d] ?? [])),
-          itemStyle: { color: '#26a69a' },
-        },
-        {
-          name: 'Tail Ask',
-          type: 'bar',
-          data: dates.map((d) => avg(askByDate[d] ?? [])),
-          itemStyle: { color: '#ef5350' },
-        },
+        { name: 'Tail Bid', type: 'bar', data: dates.map((d) => avg(bidByDate[d] ?? [])), itemStyle: { color: '#26a69a' } },
+        { name: 'Tail Ask', type: 'bar', data: dates.map((d) => avg(askByDate[d] ?? [])), itemStyle: { color: '#ef5350' } },
       ],
     }
   }, [reports])
@@ -190,67 +232,80 @@ export default function QCPage() {
       {/* Section A: Market Quality */}
       <Typography.Text strong style={{ fontSize: 14, color: '#999' }}>Market Quality</Typography.Text>
       <Row gutter={16}>
-        <Col span={4}>
-          <Card size="small"><Statistic title="Total Records" value={totals.records} /></Card>
-        </Col>
-        <Col span={4}>
-          <Card size="small"><Statistic title="Total Trades" value={totals.trades} /></Card>
-        </Col>
-        <Col span={4}>
-          <Card size="small"><Statistic title="Avg Spread (mean)" value={reports.length ? (reports.reduce((s, r) => s + r.spread_mean, 0) / reports.length).toFixed(4) : '—'} /></Card>
-        </Col>
-        <Col span={4}>
-          <Card size="small"><Statistic title="Avg Spread (median)" value={reports.length ? (reports.reduce((s, r) => s + r.spread_median, 0) / reports.length).toFixed(4) : '—'} /></Card>
-        </Col>
-        <Col span={4}>
-          <Card size="small"><Statistic title="BBO Crossed" value={totals.bboCrossed} valueStyle={{ color: totals.bboCrossed > 0 ? '#ff4d4f' : '#52c41a' }} /></Card>
-        </Col>
-        <Col span={4}>
-          <Card size="small"><Statistic title="BBO Locked" value={totals.bboLocked} valueStyle={{ color: totals.bboLocked > 0 ? '#faad14' : '#52c41a' }} /></Card>
-        </Col>
+        <Col span={4}><Card size="small"><Statistic title="Total Records" value={totals.records} /></Card></Col>
+        <Col span={4}><Card size="small"><Statistic title="Total Trades" value={totals.trades} /></Card></Col>
+        <Col span={4}><Card size="small"><Statistic title="Avg Spread (mean)" value={reports.length ? (reports.reduce((s, r) => s + r.spread_mean, 0) / reports.length).toFixed(4) : '—'} /></Card></Col>
+        <Col span={4}><Card size="small"><Statistic title="Avg Spread (median)" value={reports.length ? (reports.reduce((s, r) => s + r.spread_median, 0) / reports.length).toFixed(4) : '—'} /></Card></Col>
+        <Col span={4}><Card size="small"><Statistic title="BBO Crossed" value={totals.bboCrossed} valueStyle={{ color: totals.bboCrossed > 0 ? '#ff4d4f' : '#52c41a' }} /></Card></Col>
+        <Col span={4}><Card size="small"><Statistic title="BBO Locked" value={totals.bboLocked} valueStyle={{ color: totals.bboLocked > 0 ? '#faad14' : '#52c41a' }} /></Card></Col>
       </Row>
 
-      {/* Section B: Iceberg / Hidden Orders */}
-      <Typography.Text strong style={{ fontSize: 14, color: '#999' }}>Iceberg / Hidden Orders</Typography.Text>
+      {/* Section B: Hidden Orders — 3 types */}
+      <Typography.Text strong style={{ fontSize: 14, color: '#999' }}>Hidden Order Detection</Typography.Text>
       <Row gutter={16}>
-        <Col span={6}>
-          <Card size="small"><Statistic title="Iceberg Refills" value={totals.icebergRefills} /></Card>
-        </Col>
-        <Col span={6}>
+        <Col span={4}>
           <Card size="small">
             <Statistic
-              title="Avg Iceberg %"
-              value={totals.avgIcebergPct.toFixed(2) + '%'}
-              valueStyle={{ color: icebergColor(totals.avgIcebergPct) }}
+              title="Total Hidden Rate"
+              value={totals.hiddenRate.toFixed(1) + '%'}
+              valueStyle={{ fontSize: 22, color: '#ffa726' }}
             />
+            <Typography.Text type="secondary" style={{ fontSize: 11 }}>
+              {totals.totalHidden.toLocaleString()} / {totals.trades.toLocaleString()} trades
+            </Typography.Text>
           </Card>
         </Col>
-        <Col span={6}>
-          <Card size="small"><Statistic title="Reports" value={reports.length} /></Card>
+        <Col span={5}>
+          <Card size="small">
+            <Statistic title="Hidden Fill" value={totals.hiddenFill.toLocaleString()} valueStyle={{ color: HIDDEN_FILL_COLOR }} />
+            <Typography.Text type="secondary" style={{ fontSize: 11 }}>
+              Trade at BBO but book unchanged
+            </Typography.Text>
+          </Card>
         </Col>
-        <Col span={6}>
+        <Col span={5}>
+          <Card size="small">
+            <Statistic title="Mid-Spread" value={totals.midSpread.toLocaleString()} valueStyle={{ color: MID_SPREAD_COLOR }} />
+            <Typography.Text type="secondary" style={{ fontSize: 11 }}>
+              Trade inside spread, no visible order
+            </Typography.Text>
+          </Card>
+        </Col>
+        <Col span={5}>
+          <Card size="small">
+            <Statistic title="Iceberg Refill" value={totals.iceberg.toLocaleString()} valueStyle={{ color: ICEBERG_COLOR }} />
+            <Typography.Text type="secondary" style={{ fontSize: 11 }}>
+              L0 immediately refills after drain
+            </Typography.Text>
+          </Card>
+        </Col>
+        <Col span={5}>
           <Card size="small"><Statistic title="Alerts" value={totals.alerts} valueStyle={{ color: totals.alerts > 0 ? '#ff4d4f' : '#52c41a' }} /></Card>
         </Col>
       </Row>
 
       {/* Charts row */}
       <Row gutter={16}>
-        <Col span={8}>
-          <Card title="Health Matrix" size="small">
-            {reports.length > 0 && <ReactECharts option={heatmapOption} style={{ height: 280 }} />}
+        <Col span={10}>
+          <Card title="Hidden Orders by Type (% of Trades)" size="small">
+            {hiddenStackOption ? <ReactECharts option={hiddenStackOption} style={{ height: 280 }} /> : null}
           </Card>
         </Col>
-        <Col span={8}>
+        <Col span={7}>
           <Card title="Hidden Depth (2-Tail)" size="small">
             {tailDepthOption ? <ReactECharts option={tailDepthOption} style={{ height: 280 }} /> : null}
           </Card>
         </Col>
-        <Col span={8}>
+        <Col span={7}>
           <Card title="Action Distribution" size="small">
             {reports.length > 0 && <ReactECharts option={actionOption} style={{ height: 280 }} />}
           </Card>
         </Col>
       </Row>
+
+      <Card title="Health Matrix" size="small">
+        {reports.length > 0 && <ReactECharts option={heatmapOption} style={{ height: 200 }} />}
+      </Card>
 
       {/* QC Reports Table */}
       <Card
@@ -270,27 +325,33 @@ export default function QCPage() {
         <ProTable<QCReport>
           columns={[
             { title: 'Symbol', dataIndex: 'symbol', width: 80 },
-            { title: 'Date', dataIndex: 'date', width: 110 },
-            { title: 'Records', dataIndex: 'n_records', render: (_, r) => r.n_records.toLocaleString(), sorter: (a, b) => a.n_records - b.n_records },
-            { title: 'Trades', dataIndex: 'n_trades', render: (_, r) => (r.n_trades ?? 0).toLocaleString(), sorter: (a, b) => (a.n_trades ?? 0) - (b.n_trades ?? 0) },
-            { title: 'BBO Crossed', dataIndex: 'n_bbo_crossed', render: (_, r) => <Tag color={r.n_bbo_crossed > 0 ? 'red' : 'green'}>{r.n_bbo_crossed}</Tag> },
-            { title: 'BBO Locked', dataIndex: 'n_bbo_locked', width: 100 },
-            { title: 'Spread', dataIndex: 'spread_mean', render: (_, r) => r.spread_mean?.toFixed(4), width: 90 },
+            { title: 'Date', dataIndex: 'date', width: 100 },
+            { title: 'Trades', dataIndex: 'n_trades', render: (_, r) => (r.n_trades ?? 0).toLocaleString(), sorter: (a, b) => (a.n_trades ?? 0) - (b.n_trades ?? 0), width: 100 },
             {
-              title: 'Iceberg',
+              title: <span style={{ color: HIDDEN_FILL_COLOR }}>Hidden Fill</span>,
+              dataIndex: 'n_hidden_fill',
+              render: (_, r) => <Space size={4}><span>{(r.n_hidden_fill ?? 0).toLocaleString()}</span><Tag color="purple" style={{ margin: 0 }}>{(r.hidden_fill_pct ?? 0).toFixed(1)}%</Tag></Space>,
+              sorter: (a, b) => (a.hidden_fill_pct ?? 0) - (b.hidden_fill_pct ?? 0),
+              width: 150,
+            },
+            {
+              title: <span style={{ color: MID_SPREAD_COLOR }}>Mid-Spread</span>,
+              dataIndex: 'n_mid_spread',
+              render: (_, r) => <Space size={4}><span>{(r.n_mid_spread ?? 0).toLocaleString()}</span><Tag color="orange" style={{ margin: 0 }}>{(r.mid_spread_pct ?? 0).toFixed(1)}%</Tag></Space>,
+              sorter: (a, b) => (a.mid_spread_pct ?? 0) - (b.mid_spread_pct ?? 0),
+              width: 140,
+            },
+            {
+              title: <span style={{ color: ICEBERG_COLOR }}>Iceberg</span>,
               dataIndex: 'n_iceberg_refills',
-              render: (_, r) => (
-                <Space size={4}>
-                  <span>{r.n_iceberg_refills ?? 0}</span>
-                  <Tag color={icebergColor(r.iceberg_pct ?? 0)} style={{ margin: 0 }}>{(r.iceberg_pct ?? 0).toFixed(2)}%</Tag>
-                </Space>
-              ),
+              render: (_, r) => <Space size={4}><span>{(r.n_iceberg_refills ?? 0).toLocaleString()}</span><Tag color="cyan" style={{ margin: 0 }}>{(r.iceberg_pct ?? 0).toFixed(2)}%</Tag></Space>,
               sorter: (a, b) => (a.iceberg_pct ?? 0) - (b.iceberg_pct ?? 0),
               width: 130,
             },
-            { title: 'Tail Bid', dataIndex: 'tail_bid_mean', render: (_, r) => (r.tail_bid_mean ?? 0) >= 1000 ? ((r.tail_bid_mean ?? 0) / 1000).toFixed(1) + 'K' : (r.tail_bid_mean ?? 0).toFixed(0), width: 90 },
-            { title: 'Tail Ask', dataIndex: 'tail_ask_mean', render: (_, r) => (r.tail_ask_mean ?? 0) >= 1000 ? ((r.tail_ask_mean ?? 0) / 1000).toFixed(1) + 'K' : (r.tail_ask_mean ?? 0).toFixed(0), width: 90 },
-            { title: 'Tail Imb', dataIndex: 'tail_imbalance_mean', render: (_, r) => (r.tail_imbalance_mean ?? 0).toFixed(3), width: 80 },
+            { title: 'Spread', dataIndex: 'spread_mean', render: (_, r) => r.spread_mean?.toFixed(4), width: 80 },
+            { title: 'BBO X', dataIndex: 'n_bbo_crossed', render: (_, r) => <Tag color={r.n_bbo_crossed > 0 ? 'red' : 'green'}>{r.n_bbo_crossed}</Tag>, width: 70 },
+            { title: 'Tail Bid', dataIndex: 'tail_bid_mean', render: (_, r) => (r.tail_bid_mean ?? 0) >= 1000 ? ((r.tail_bid_mean ?? 0) / 1000).toFixed(1) + 'K' : (r.tail_bid_mean ?? 0).toFixed(0), width: 80 },
+            { title: 'Tail Ask', dataIndex: 'tail_ask_mean', render: (_, r) => (r.tail_ask_mean ?? 0) >= 1000 ? ((r.tail_ask_mean ?? 0) / 1000).toFixed(1) + 'K' : (r.tail_ask_mean ?? 0).toFixed(0), width: 80 },
           ]}
           dataSource={reports}
           loading={isLoading}
