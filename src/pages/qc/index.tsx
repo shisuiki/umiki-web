@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { Card, Select, Space, Tag, Statistic, Row, Col } from 'antd'
+import { Card, Select, Space, Tag, Statistic, Row, Col, Typography } from 'antd'
 import { ProTable } from '@ant-design/pro-components'
 import { useQuery } from '@tanstack/react-query'
 import ReactECharts from 'echarts-for-react'
@@ -12,6 +12,9 @@ const alertColors: Record<string, string> = {
   warning: 'orange',
   error: 'red',
 }
+
+const icebergColor = (pct: number) =>
+  pct > 1 ? '#ff4d4f' : pct > 0.5 ? '#faad14' : '#52c41a'
 
 export default function QCPage() {
   const [symbolFilter, setSymbolFilter] = useState<string>()
@@ -32,20 +35,24 @@ export default function QCPage() {
   }, [reports])
 
   const totals = useMemo(() => {
-    return {
-      records: reports.reduce((s, r) => s + r.n_records, 0),
-      bboCrossed: reports.reduce((s, r) => s + r.n_bbo_crossed, 0),
-      bboLocked: reports.reduce((s, r) => s + r.n_bbo_locked, 0),
-      alerts: alerts.length,
-    }
+    const records = reports.reduce((s, r) => s + r.n_records, 0)
+    const trades = reports.reduce((s, r) => s + (r.n_trades ?? 0), 0)
+    const bboCrossed = reports.reduce((s, r) => s + r.n_bbo_crossed, 0)
+    const bboLocked = reports.reduce((s, r) => s + r.n_bbo_locked, 0)
+    const icebergRefills = reports.reduce((s, r) => s + (r.n_iceberg_refills ?? 0), 0)
+    const avgIcebergPct = reports.length
+      ? reports.reduce((s, r) => s + (r.iceberg_pct ?? 0), 0) / reports.length
+      : 0
+    return { records, trades, bboCrossed, bboLocked, icebergRefills, avgIcebergPct, alerts: alerts.length }
   }, [reports, alerts])
 
-  // Heatmap: symbol × date → health
+  // Heatmap: symbol × date → health (now includes iceberg severity)
   const heatmapOption = useMemo(() => {
     const dates = [...new Set(reports.map((r) => r.date))].sort()
     const syms = [...new Set(reports.map((r) => r.symbol))].sort()
     const data = reports.map((r) => {
-      const health = r.n_bbo_crossed > 0 ? 2 : r.n_bbo_locked > 0 ? 1 : 0
+      // 0=clean, 1=iceberg notable, 2=bbo locked, 3=bbo crossed
+      const health = r.n_bbo_crossed > 0 ? 3 : r.n_bbo_locked > 0 ? 2 : (r.iceberg_pct ?? 0) > 1 ? 1 : 0
       return [dates.indexOf(r.date), syms.indexOf(r.symbol), health]
     })
     return {
@@ -55,36 +62,78 @@ export default function QCPage() {
             (r) => r.date === dates[p.data[0]] && r.symbol === syms[p.data[1]],
           )
           if (!r) return ''
-          return `${r.symbol} ${r.date}<br/>Records: ${r.n_records.toLocaleString()}<br/>BBO Crossed: ${r.n_bbo_crossed}<br/>BBO Locked: ${r.n_bbo_locked}`
+          return `<b>${r.symbol} ${r.date}</b><br/>`
+            + `Records: ${r.n_records.toLocaleString()}<br/>`
+            + `Trades: ${(r.n_trades ?? 0).toLocaleString()}<br/>`
+            + `BBO Crossed: ${r.n_bbo_crossed} | Locked: ${r.n_bbo_locked}<br/>`
+            + `Iceberg: ${r.n_iceberg_refills ?? 0} (${(r.iceberg_pct ?? 0).toFixed(2)}%)`
         },
       },
       xAxis: { type: 'category' as const, data: dates },
       yAxis: { type: 'category' as const, data: syms },
       visualMap: {
         min: 0,
-        max: 2,
+        max: 3,
         show: false,
-        inRange: { color: ['#52c41a', '#faad14', '#ff4d4f'] },
+        inRange: { color: ['#52c41a', '#faad14', '#ffa726', '#ff4d4f'] },
       },
+      series: [{
+        type: 'heatmap',
+        data,
+        label: { show: false },
+        itemStyle: { borderRadius: 4 },
+      }],
+    }
+  }, [reports])
+
+  // Hidden depth bar chart: tail bid vs tail ask per day
+  const tailDepthOption = useMemo(() => {
+    if (!reports.length) return null
+    const dates = [...new Set(reports.map((r) => r.date))].sort()
+    // Average across symbols per date
+    const bidByDate: Record<string, number[]> = {}
+    const askByDate: Record<string, number[]> = {}
+    const imbByDate: Record<string, number[]> = {}
+    reports.forEach((r) => {
+      if (!bidByDate[r.date]) { bidByDate[r.date] = []; askByDate[r.date] = []; imbByDate[r.date] = [] }
+      bidByDate[r.date].push(r.tail_bid_mean ?? 0)
+      askByDate[r.date].push(r.tail_ask_mean ?? 0)
+      imbByDate[r.date].push(r.tail_imbalance_mean ?? 0)
+    })
+    const avg = (arr: number[]) => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0
+
+    return {
+      tooltip: {
+        trigger: 'axis' as const,
+        formatter: (p: { name: string; seriesName: string; value: number }[]) =>
+          `<b>${p[0]?.name}</b><br/>` + p.map((i) =>
+            `${i.seriesName}: ${i.value >= 1000 ? (i.value / 1000).toFixed(1) + 'K' : i.value.toFixed(2)}`
+          ).join('<br/>'),
+      },
+      legend: { textStyle: { color: '#999' } },
+      grid: { left: 60, right: 20, top: 35, bottom: 30 },
+      xAxis: { type: 'category' as const, data: dates },
+      yAxis: { type: 'value' as const, scale: true, splitLine: { lineStyle: { color: '#333' } }, axisLabel: { formatter: (v: number) => v >= 1000 ? (v / 1000).toFixed(0) + 'K' : String(v) } },
       series: [
         {
-          type: 'heatmap',
-          data,
-          label: { show: false },
-          itemStyle: { borderRadius: 4 },
+          name: 'Tail Bid',
+          type: 'bar',
+          data: dates.map((d) => avg(bidByDate[d] ?? [])),
+          itemStyle: { color: '#26a69a' },
+        },
+        {
+          name: 'Tail Ask',
+          type: 'bar',
+          data: dates.map((d) => avg(askByDate[d] ?? [])),
+          itemStyle: { color: '#ef5350' },
         },
       ],
     }
   }, [reports])
 
-  // Action distribution for all reports
+  // Action distribution pie
   const ACTION_NAMES: Record<string, string> = {
-    A: 'Add',
-    C: 'Cancel',
-    T: 'Trade',
-    M: 'Modify',
-    F: 'Fill',
-    R: 'Reset',
+    A: 'Add', C: 'Cancel', T: 'Trade', M: 'Modify', F: 'Fill', R: 'Reset',
   }
   const actionOption = useMemo(() => {
     const merged: Record<string, number> = {}
@@ -109,20 +158,18 @@ export default function QCPage() {
         formatter: (name: string) => ACTION_NAMES[name] ?? name,
         textStyle: { color: '#ccc' },
       },
-      series: [
-        {
-          type: 'pie',
-          radius: ['40%', '65%'],
-          center: ['35%', '50%'],
-          data: Object.entries(merged).map(([name, value]) => ({
-            name,
-            value,
-            itemStyle: { color: actionColors[name] ?? '#78909c' },
-          })),
-          label: { show: false },
-          emphasis: { label: { show: true, fontSize: 14, formatter: '{b}: {d}%' } },
-        },
-      ],
+      series: [{
+        type: 'pie',
+        radius: ['40%', '65%'],
+        center: ['35%', '50%'],
+        data: Object.entries(merged).map(([name, value]) => ({
+          name,
+          value,
+          itemStyle: { color: actionColors[name] ?? '#78909c' },
+        })),
+        label: { show: false },
+        emphasis: { label: { show: true, fontSize: 14, formatter: '{b}: {d}%' } },
+      }],
     }
   }, [reports])
 
@@ -140,34 +187,72 @@ export default function QCPage() {
 
   return (
     <Space direction="vertical" style={{ width: '100%' }} size="middle">
+      {/* Section A: Market Quality */}
+      <Typography.Text strong style={{ fontSize: 14, color: '#999' }}>Market Quality</Typography.Text>
       <Row gutter={16}>
-        <Col span={6}>
+        <Col span={4}>
           <Card size="small"><Statistic title="Total Records" value={totals.records} /></Card>
         </Col>
-        <Col span={6}>
+        <Col span={4}>
+          <Card size="small"><Statistic title="Total Trades" value={totals.trades} /></Card>
+        </Col>
+        <Col span={4}>
+          <Card size="small"><Statistic title="Avg Spread (mean)" value={reports.length ? (reports.reduce((s, r) => s + r.spread_mean, 0) / reports.length).toFixed(4) : '—'} /></Card>
+        </Col>
+        <Col span={4}>
+          <Card size="small"><Statistic title="Avg Spread (median)" value={reports.length ? (reports.reduce((s, r) => s + r.spread_median, 0) / reports.length).toFixed(4) : '—'} /></Card>
+        </Col>
+        <Col span={4}>
           <Card size="small"><Statistic title="BBO Crossed" value={totals.bboCrossed} valueStyle={{ color: totals.bboCrossed > 0 ? '#ff4d4f' : '#52c41a' }} /></Card>
         </Col>
-        <Col span={6}>
+        <Col span={4}>
           <Card size="small"><Statistic title="BBO Locked" value={totals.bboLocked} valueStyle={{ color: totals.bboLocked > 0 ? '#faad14' : '#52c41a' }} /></Card>
+        </Col>
+      </Row>
+
+      {/* Section B: Iceberg / Hidden Orders */}
+      <Typography.Text strong style={{ fontSize: 14, color: '#999' }}>Iceberg / Hidden Orders</Typography.Text>
+      <Row gutter={16}>
+        <Col span={6}>
+          <Card size="small"><Statistic title="Iceberg Refills" value={totals.icebergRefills} /></Card>
+        </Col>
+        <Col span={6}>
+          <Card size="small">
+            <Statistic
+              title="Avg Iceberg %"
+              value={totals.avgIcebergPct.toFixed(2) + '%'}
+              valueStyle={{ color: icebergColor(totals.avgIcebergPct) }}
+            />
+          </Card>
+        </Col>
+        <Col span={6}>
+          <Card size="small"><Statistic title="Reports" value={reports.length} /></Card>
         </Col>
         <Col span={6}>
           <Card size="small"><Statistic title="Alerts" value={totals.alerts} valueStyle={{ color: totals.alerts > 0 ? '#ff4d4f' : '#52c41a' }} /></Card>
         </Col>
       </Row>
 
+      {/* Charts row */}
       <Row gutter={16}>
-        <Col span={16}>
-          <Card title="Health Matrix (Symbol × Date)" size="small">
-            {reports.length > 0 && <ReactECharts option={heatmapOption} style={{ height: 300 }} />}
+        <Col span={8}>
+          <Card title="Health Matrix" size="small">
+            {reports.length > 0 && <ReactECharts option={heatmapOption} style={{ height: 280 }} />}
+          </Card>
+        </Col>
+        <Col span={8}>
+          <Card title="Hidden Depth (2-Tail)" size="small">
+            {tailDepthOption ? <ReactECharts option={tailDepthOption} style={{ height: 280 }} /> : null}
           </Card>
         </Col>
         <Col span={8}>
           <Card title="Action Distribution" size="small">
-            {reports.length > 0 && <ReactECharts option={actionOption} style={{ height: 300 }} />}
+            {reports.length > 0 && <ReactECharts option={actionOption} style={{ height: 280 }} />}
           </Card>
         </Col>
       </Row>
 
+      {/* QC Reports Table */}
       <Card
         title="QC Reports"
         size="small"
@@ -187,10 +272,25 @@ export default function QCPage() {
             { title: 'Symbol', dataIndex: 'symbol', width: 80 },
             { title: 'Date', dataIndex: 'date', width: 110 },
             { title: 'Records', dataIndex: 'n_records', render: (_, r) => r.n_records.toLocaleString(), sorter: (a, b) => a.n_records - b.n_records },
+            { title: 'Trades', dataIndex: 'n_trades', render: (_, r) => (r.n_trades ?? 0).toLocaleString(), sorter: (a, b) => (a.n_trades ?? 0) - (b.n_trades ?? 0) },
             { title: 'BBO Crossed', dataIndex: 'n_bbo_crossed', render: (_, r) => <Tag color={r.n_bbo_crossed > 0 ? 'red' : 'green'}>{r.n_bbo_crossed}</Tag> },
-            { title: 'BBO Locked', dataIndex: 'n_bbo_locked' },
-            { title: 'Spread (mean)', dataIndex: 'spread_mean', render: (_, r) => r.spread_mean?.toFixed(4) },
-            { title: 'Spread (median)', dataIndex: 'spread_median', render: (_, r) => r.spread_median?.toFixed(4) },
+            { title: 'BBO Locked', dataIndex: 'n_bbo_locked', width: 100 },
+            { title: 'Spread', dataIndex: 'spread_mean', render: (_, r) => r.spread_mean?.toFixed(4), width: 90 },
+            {
+              title: 'Iceberg',
+              dataIndex: 'n_iceberg_refills',
+              render: (_, r) => (
+                <Space size={4}>
+                  <span>{r.n_iceberg_refills ?? 0}</span>
+                  <Tag color={icebergColor(r.iceberg_pct ?? 0)} style={{ margin: 0 }}>{(r.iceberg_pct ?? 0).toFixed(2)}%</Tag>
+                </Space>
+              ),
+              sorter: (a, b) => (a.iceberg_pct ?? 0) - (b.iceberg_pct ?? 0),
+              width: 130,
+            },
+            { title: 'Tail Bid', dataIndex: 'tail_bid_mean', render: (_, r) => (r.tail_bid_mean ?? 0) >= 1000 ? ((r.tail_bid_mean ?? 0) / 1000).toFixed(1) + 'K' : (r.tail_bid_mean ?? 0).toFixed(0), width: 90 },
+            { title: 'Tail Ask', dataIndex: 'tail_ask_mean', render: (_, r) => (r.tail_ask_mean ?? 0) >= 1000 ? ((r.tail_ask_mean ?? 0) / 1000).toFixed(1) + 'K' : (r.tail_ask_mean ?? 0).toFixed(0), width: 90 },
+            { title: 'Tail Imb', dataIndex: 'tail_imbalance_mean', render: (_, r) => (r.tail_imbalance_mean ?? 0).toFixed(3), width: 80 },
           ]}
           dataSource={reports}
           loading={isLoading}
@@ -201,6 +301,7 @@ export default function QCPage() {
         />
       </Card>
 
+      {/* Alerts */}
       {alerts.length > 0 && (
         <Card title="Alerts" size="small">
           <ProTable<QCAlert>

@@ -37,10 +37,16 @@ export interface QCReport {
   symbol: string
   date: string
   n_records: number
+  n_trades: number
   n_bbo_crossed: number
   n_bbo_locked: number
   spread_mean: number
   spread_median: number
+  n_iceberg_refills: number
+  iceberg_pct: number
+  tail_bid_mean: number
+  tail_ask_mean: number
+  tail_imbalance_mean: number
   action_dist: Record<string, number>
   alerts: string[]
 }
