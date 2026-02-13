@@ -18,9 +18,9 @@ const BOOK_LEVELS = [0, 1, 2, 3, 4]
 const FEATURE_KEYS = [
   'mid_price', 'spread', 'imbalance_l1', 'imbalance_l5', 'imbalance',
   'depth_bid', 'depth_ask', 'book_slope_bid', 'book_slope_ask',
-  'tail_bid_sz', 'tail_ask_sz', 'tail_imbalance',
+  'r_value', 'delta_r', 'boundary_bid', 'boundary_ask',
 ]
-const TRADE_KEYS = ['is_trade', 'trade_size']
+const TRADE_KEYS = ['is_trade', 'trade_size', 'hidden_trade_sz']
 const DELTA_KEYS = ['delta_mid_price', 'delta_spread', 'delta_bid_sz_00', 'delta_ask_sz_00']
 
 export default function TickExplorer() {
@@ -184,7 +184,7 @@ export default function TickExplorer() {
               <Descriptions bordered size="small" column={1}>
                 {FEATURE_KEYS.map((k) => (
                   <Descriptions.Item key={k} label={k.replace(/_/g, ' ')}>
-                    {fmtNum(selectedRow[k], k.includes('depth') || k.includes('tail_bid') || k.includes('tail_ask') ? 0 : 6)}
+                    {fmtNum(selectedRow[k], k.includes('depth') || k.includes('boundary') ? 0 : 6)}
                   </Descriptions.Item>
                 ))}
               </Descriptions>

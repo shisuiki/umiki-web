@@ -168,10 +168,16 @@ export default function SymbolDashboard() {
         { name: 'Bid', data: barData.map((b: Bar) => b.avg_book_slope_bid), color: '#26a69a' },
         { name: 'Ask', data: barData.map((b: Bar) => b.avg_book_slope_ask), color: '#ef5350' },
       ]),
-      make('2-Tail Hidden Depth', [
-        { name: 'Tail Bid', data: barData.map((b: Bar) => b.avg_tail_bid_sz), color: '#26a69a' },
-        { name: 'Tail Ask', data: barData.map((b: Bar) => b.avg_tail_ask_sz), color: '#ef5350' },
-        { name: 'Tail Imb', data: barData.map((b: Bar) => b.avg_tail_imbalance), color: '#ffa726' },
+      make('Star Graph R (Hidden Liquidity)', [
+        { name: 'Avg R', data: barData.map((b: Bar) => b.avg_r), color: '#7c4dff' },
+        { name: 'R Std', data: barData.map((b: Bar) => b.r_std), color: '#ab47bc' },
+      ]),
+      make('Hidden Trade Volume', [
+        { name: 'Hidden Vol', data: barData.map((b: Bar) => b.hidden_trade_volume), color: '#ff6d00' },
+      ]),
+      make('Boundary Flow (Top-10 Edge)', [
+        { name: 'Bid', data: barData.map((b: Bar) => b.avg_boundary_bid), color: '#26a69a' },
+        { name: 'Ask', data: barData.map((b: Bar) => b.avg_boundary_ask), color: '#ef5350' },
       ]),
       make('Trade Intensity', [
         { name: 'Intensity', data: barData.map((b: Bar) => b.trade_intensity), color: '#66bb6a' },

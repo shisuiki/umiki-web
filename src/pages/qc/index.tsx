@@ -131,34 +131,31 @@ export default function QCPage() {
     }
   }, [reports])
 
-  // Hidden depth bar chart: tail bid vs tail ask per day
-  const tailDepthOption = useMemo(() => {
+  // Star Graph R and hidden volume per day
+  const rStatsOption = useMemo(() => {
     if (!reports.length) return null
     const dates = [...new Set(reports.map((r) => r.date))].sort()
-    const bidByDate: Record<string, number[]> = {}
-    const askByDate: Record<string, number[]> = {}
+    const rByDate: Record<string, number[]> = {}
+    const volByDate: Record<string, number[]> = {}
     reports.forEach((r) => {
-      if (!bidByDate[r.date]) { bidByDate[r.date] = []; askByDate[r.date] = [] }
-      bidByDate[r.date].push(r.tail_bid_mean ?? 0)
-      askByDate[r.date].push(r.tail_ask_mean ?? 0)
+      if (!rByDate[r.date]) { rByDate[r.date] = []; volByDate[r.date] = [] }
+      rByDate[r.date].push(r.avg_r_mean ?? 0)
+      volByDate[r.date].push(r.hidden_trade_volume_mean ?? 0)
     })
     const avg = (arr: number[]) => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0
 
     return {
-      tooltip: {
-        trigger: 'axis' as const,
-        formatter: (p: { name: string; seriesName: string; value: number }[]) =>
-          `<b>${p[0]?.name}</b><br/>` + p.map((i) =>
-            `${i.seriesName}: ${i.value >= 1000 ? (i.value / 1000).toFixed(1) + 'K' : i.value.toFixed(2)}`
-          ).join('<br/>'),
-      },
+      tooltip: { trigger: 'axis' as const },
       legend: { textStyle: { color: '#999' } },
-      grid: { left: 60, right: 20, top: 35, bottom: 30 },
+      grid: { left: 60, right: 60, top: 35, bottom: 30 },
       xAxis: { type: 'category' as const, data: dates },
-      yAxis: { type: 'value' as const, scale: true, splitLine: { lineStyle: { color: '#333' } }, axisLabel: { formatter: (v: number) => v >= 1000 ? (v / 1000).toFixed(0) + 'K' : String(v) } },
+      yAxis: [
+        { type: 'value' as const, name: 'Avg R', scale: true, splitLine: { lineStyle: { color: '#333' } } },
+        { type: 'value' as const, name: 'Hidden Vol', scale: true },
+      ],
       series: [
-        { name: 'Tail Bid', type: 'bar', data: dates.map((d) => avg(bidByDate[d] ?? [])), itemStyle: { color: '#26a69a' } },
-        { name: 'Tail Ask', type: 'bar', data: dates.map((d) => avg(askByDate[d] ?? [])), itemStyle: { color: '#ef5350' } },
+        { name: 'Avg R', type: 'line', data: dates.map((d) => avg(rByDate[d] ?? [])), itemStyle: { color: '#7c4dff' }, showSymbol: false, lineStyle: { width: 2 } },
+        { name: 'Hidden Vol', type: 'bar', yAxisIndex: 1, data: dates.map((d) => avg(volByDate[d] ?? [])), itemStyle: { color: 'rgba(255,109,0,0.6)' } },
       ],
     }
   }, [reports])
@@ -277,8 +274,8 @@ export default function QCPage() {
           </Card>
         </Col>
         <Col span={7}>
-          <Card title="Hidden Depth (2-Tail)" size="small">
-            {tailDepthOption ? <ReactECharts option={tailDepthOption} style={{ height: 280 }} /> : null}
+          <Card title="Star Graph R & Hidden Volume" size="small">
+            {rStatsOption ? <ReactECharts option={rStatsOption} style={{ height: 280 }} /> : null}
           </Card>
         </Col>
         <Col span={7}>
@@ -329,8 +326,8 @@ export default function QCPage() {
             { title: 'Spread', dataIndex: 'spread_mean', render: (_, r) => r.spread_mean?.toFixed(4), width: 80 },
             { title: 'BBO X', dataIndex: 'n_bbo_crossed', render: (_, r) => <Tag color={r.n_bbo_crossed > 0 ? 'red' : 'green'}>{r.n_bbo_crossed}</Tag>, width: 70 },
             { title: 'BBO L', dataIndex: 'n_bbo_locked', width: 70 },
-            { title: 'Tail Bid', dataIndex: 'tail_bid_mean', render: (_, r) => (r.tail_bid_mean ?? 0) >= 1000 ? ((r.tail_bid_mean ?? 0) / 1000).toFixed(1) + 'K' : (r.tail_bid_mean ?? 0).toFixed(0), width: 80 },
-            { title: 'Tail Ask', dataIndex: 'tail_ask_mean', render: (_, r) => (r.tail_ask_mean ?? 0) >= 1000 ? ((r.tail_ask_mean ?? 0) / 1000).toFixed(1) + 'K' : (r.tail_ask_mean ?? 0).toFixed(0), width: 80 },
+            { title: 'Avg R', dataIndex: 'avg_r_mean', render: (_, r) => (r.avg_r_mean ?? 0).toFixed(4), width: 80 },
+            { title: 'R Std', dataIndex: 'r_std_mean', render: (_, r) => (r.r_std_mean ?? 0).toFixed(4), width: 80 },
           ]}
           dataSource={reports}
           loading={isLoading}

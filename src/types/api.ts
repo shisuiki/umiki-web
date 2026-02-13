@@ -46,9 +46,9 @@ export interface QCReport {
   iceberg_pct: number
   n_mid_spread: number
   mid_spread_pct: number
-  tail_bid_mean: number
-  tail_ask_mean: number
-  tail_imbalance_mean: number
+  avg_r_mean: number
+  r_std_mean: number
+  hidden_trade_volume_mean: number
   action_dist: Record<string, number>
   alerts: string[]
 }
@@ -153,9 +153,12 @@ export interface Bar {
   avg_book_slope_ask: number
   avg_ct_sz_ratio_bid: number
   avg_ct_sz_ratio_ask: number
-  avg_tail_bid_sz: number
-  avg_tail_ask_sz: number
-  avg_tail_imbalance: number
+  avg_r: number
+  r_std: number
+  avg_delta_r: number
+  hidden_trade_volume: number
+  avg_boundary_bid: number
+  avg_boundary_ask: number
   trade_intensity: number
   delta_mid_std: number
   return_1m: number
@@ -214,9 +217,12 @@ export interface TrainingSample {
   avg_book_slope_ask: number
   avg_ct_sz_ratio_bid: number
   avg_ct_sz_ratio_ask: number
-  avg_tail_bid_sz: number
-  avg_tail_ask_sz: number
-  avg_tail_imbalance: number
+  avg_r: number
+  r_std: number
+  avg_delta_r: number
+  hidden_trade_volume: number
+  avg_boundary_bid: number
+  avg_boundary_ask: number
   trade_intensity: number
   delta_mid_std: number
   return_1m: number

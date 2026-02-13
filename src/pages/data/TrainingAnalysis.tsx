@@ -39,7 +39,8 @@ export default function TrainingAnalysis() {
     const featureCols = [
       'avg_spread', 'avg_imbalance', 'avg_imbalance_l1', 'avg_imbalance_l5',
       'avg_depth_bid', 'avg_depth_ask', 'avg_book_slope_bid', 'avg_book_slope_ask',
-      'avg_tail_bid_sz', 'avg_tail_ask_sz', 'avg_tail_imbalance',
+      'avg_r', 'r_std', 'avg_delta_r',
+      'hidden_trade_volume', 'avg_boundary_bid', 'avg_boundary_ask',
       'trade_intensity', 'delta_mid_std',
     ]
     return featureCols
@@ -195,7 +196,8 @@ export default function TrainingAnalysis() {
       headerName: k,
       width: k === 'date' ? 110 : k === 'ts' ? 160 : 100,
       valueFormatter: ['return_1m', 'avg_spread', 'avg_imbalance', 'avg_imbalance_l1', 'avg_imbalance_l5',
-        'avg_book_slope_bid', 'avg_book_slope_ask', 'avg_tail_imbalance', 'trade_intensity', 'delta_mid_std'].includes(k)
+        'avg_book_slope_bid', 'avg_book_slope_ask', 'avg_r', 'r_std', 'avg_delta_r',
+        'avg_boundary_bid', 'avg_boundary_ask', 'trade_intensity', 'delta_mid_std'].includes(k)
         ? (p: { value: number }) => p.value?.toFixed?.(6) ?? ''
         : k === 'ts'
           ? (p: { value: number }) => p.value ? new Date(p.value).toISOString().replace('T', ' ').slice(0, 19) : ''
