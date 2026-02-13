@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react'
-import { Card, DatePicker, Space, Row, Col, Tag, Empty, Statistic, Typography } from 'antd'
+import { Card, DatePicker, Space, Row, Col, Tag, Empty, Statistic, Typography, Button } from 'antd'
+import { DownloadOutlined } from '@ant-design/icons'
 import { useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import ReactECharts from 'echarts-for-react'
@@ -211,13 +212,22 @@ export default function TrainingAnalysis() {
             <span>Training Analysis</span>
             {training && <Tag>{training.count} samples</Tag>}
           </Space>
-          <RangePicker
-            value={[dayjs(range[0]), dayjs(range[1])]}
-            onChange={(dates) => {
-              if (dates?.[0] && dates?.[1])
-                setRange([dates[0].format('YYYY-MM-DD'), dates[1].format('YYYY-MM-DD')])
-            }}
-          />
+          <Space>
+            <RangePicker
+              value={[dayjs(range[0]), dayjs(range[1])]}
+              onChange={(dates) => {
+                if (dates?.[0] && dates?.[1])
+                  setRange([dates[0].format('YYYY-MM-DD'), dates[1].format('YYYY-MM-DD')])
+              }}
+            />
+            <Button
+              icon={<DownloadOutlined />}
+              disabled={!training?.count}
+              onClick={() => window.open(`/api/data/training/csv?symbol=${symbol}&from=${range[0]}&to=${range[1]}`, '_blank')}
+            >
+              CSV{training?.count ? ` (${training.count})` : ''}
+            </Button>
+          </Space>
         </Space>
       </Card>
 
