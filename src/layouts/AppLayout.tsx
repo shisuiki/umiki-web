@@ -7,7 +7,8 @@ import {
   AuditOutlined,
   ExportOutlined,
   LineChartOutlined,
-  BarChartOutlined,
+  HeatMapOutlined,
+  PlayCircleOutlined,
   DotChartOutlined,
   FundOutlined,
 } from '@ant-design/icons'
@@ -31,7 +32,8 @@ export default function AppLayout() {
         icon: <LineChartOutlined />,
         routes: [
           { path: `/data/${currentSymbol}`, name: 'Dashboard', icon: <FundOutlined /> },
-          { path: `/data/${currentSymbol}/ticks`, name: 'Tick Explorer', icon: <BarChartOutlined /> },
+          { path: `/data/${currentSymbol}/heatmap`, name: 'Book Heatmap', icon: <HeatMapOutlined /> },
+          { path: `/data/${currentSymbol}/replay`, name: 'Book Replay', icon: <PlayCircleOutlined /> },
           { path: `/data/${currentSymbol}/training`, name: 'Training Analysis', icon: <DotChartOutlined /> },
         ],
       },

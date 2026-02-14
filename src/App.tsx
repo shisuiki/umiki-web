@@ -8,7 +8,8 @@ import QCPage from '@/pages/qc'
 import AuditPage from '@/pages/audit'
 import ExportPage from '@/pages/export'
 import SymbolDashboard from '@/pages/data/SymbolDashboard'
-import TickExplorer from '@/pages/data/TickExplorer'
+import BookHeatmap from '@/pages/data/BookHeatmap'
+import BookReplay from '@/pages/data/BookReplay'
 import TrainingAnalysis from '@/pages/data/TrainingAnalysis'
 
 const queryClient = new QueryClient({
@@ -42,7 +43,8 @@ export default function App() {
                 <Route path="/audit" element={<AuditPage />} />
                 <Route path="/export" element={<ExportPage />} />
                 <Route path="/data/:symbol" element={<SymbolDashboard />} />
-                <Route path="/data/:symbol/ticks" element={<TickExplorer />} />
+                <Route path="/data/:symbol/heatmap" element={<BookHeatmap />} />
+                <Route path="/data/:symbol/replay" element={<BookReplay />} />
                 <Route path="/data/:symbol/training" element={<TrainingAnalysis />} />
                 <Route path="*" element={<Navigate to="/data/NVDA" replace />} />
               </Route>

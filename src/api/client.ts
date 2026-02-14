@@ -11,11 +11,11 @@ import type {
   ExportResponse,
   TrainingManifest,
   BarsResponse,
-  TicksResponse,
-  BookResponse,
   TrainingDataResponse,
   SymbolSummary,
   BaselineResponse,
+  HeatmapResponse,
+  ReplayResponse,
 } from '@/types/api'
 
 const api = ky.create({
@@ -69,12 +69,13 @@ export const getExportManifest = () =>
 export const getBars = (params: { symbol: string; from: string; to: string; session?: string }) =>
   api.get('data/bars', { searchParams: params as Record<string, string> }).json<BarsResponse>()
 
-export const getTicks = (params: {
-  symbol: string; date: string; from_ts: string; to_ts: string; limit?: number
-}) => api.get('data/ticks', { searchParams: params as Record<string, string | number> }).json<TicksResponse>()
+export const getHeatmap = (params: {
+  symbol: string; date: string; from_ts: string; to_ts: string; max_samples?: number; price_range?: number
+}) => api.get('data/heatmap', { searchParams: params as Record<string, string | number> }).json<HeatmapResponse>()
 
-export const getBook = (params: { symbol: string; date: string; ts: string }) =>
-  api.get('data/book', { searchParams: params }).json<BookResponse>()
+export const getReplay = (params: {
+  symbol: string; date: string; from_ts: string; to_ts: string; offset?: number; limit?: number
+}) => api.get('data/replay', { searchParams: params as Record<string, string | number> }).json<ReplayResponse>()
 
 export const getTrainingData = (params: { symbol: string; from: string; to: string }) =>
   api.get('data/training', { searchParams: params }).json<TrainingDataResponse>()

@@ -173,31 +173,6 @@ export interface BarsResponse {
   bars: Bar[]
 }
 
-export interface TicksResponse {
-  symbol: string
-  date: string
-  total_in_range: number
-  returned: number
-  columns: string[]
-  rows: (string | number)[][]
-}
-
-export interface BookResponse {
-  ts: number
-  event: { action: string; side: string; depth: number; price: number; size: number }
-  bids: { level: number; px: number; sz: number; ct: number }[]
-  asks: { level: number; px: number; sz: number; ct: number }[]
-  features?: {
-    mid_price: number
-    spread: number
-    imbalance: number
-    depth_bid: number
-    depth_ask: number
-    book_slope_bid: number
-    book_slope_ask: number
-  }
-}
-
 export interface TrainingSample {
   ts: number
   open: number
@@ -298,4 +273,60 @@ export interface BaselineResponse {
     class_accuracy: Record<string, number>
     class_distribution: Record<string, number>
   }
+}
+
+// --- Book Heatmap ---
+
+export interface HeatmapTrade {
+  ts: number
+  sample_idx: number
+  price_offset: number
+  side: string
+  size: number
+}
+
+export interface HeatmapResponse {
+  n_samples: number
+  price_range: number
+  total_in_range: number
+  timestamps: number[]
+  offsets: number[]
+  mid_prices: number[]
+  depth: number[][]
+  trades: HeatmapTrade[]
+}
+
+// --- Book Replay ---
+
+export interface ReplayLevel {
+  px: number
+  sz: number
+  ct: number
+  delta_sz: number
+}
+
+export interface ReplayFrame {
+  ts: number
+  event: { action: string; side: string; depth: number; price: number; size: number }
+  bids: ReplayLevel[]
+  asks: ReplayLevel[]
+  star_graph: {
+    r_value: number
+    delta_r: number
+    hidden_trade_sz: number
+    boundary_bid: number
+    boundary_ask: number
+  }
+  mid_price: number
+  spread: number
+  imbalance: number
+}
+
+export interface ReplayResponse {
+  total_in_range: number
+  offset: number
+  limit: number
+  returned: number
+  has_more: boolean
+  frames: ReplayFrame[]
 }
